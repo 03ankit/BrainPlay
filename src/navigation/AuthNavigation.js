@@ -16,7 +16,6 @@ export default function AuthNavigation() {
                 animation: 'fade',
             }}
         >
-            {/* <Stack.Screen name="Login" component={LoginScreen} /> */}
             <Stack.Screen name="Signup" component={SignupScreen} />
             <Stack.Screen name="Otp" component={OtpScreen} />
             <Stack.Screen name="Profile" component={Profile} />

@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^3.1.1",
     "@react-native/new-app-screen": "0.86.2",
     "@react-navigation/bottom-tabs": "^7.18.14",
     "@react-navigation/native": "^7.3.14",
@@ -18,8 +19,9 @@
     "react": "19.2.3",
     "react-native": "0.86.2",
     "react-native-bootsplash": "^7.3.2",
-    "react-native-confirmation-code-field": "^9.0.0",
     "react-native-gesture-handler": "^3.1.0",
+    "react-native-image-picker": "^8.2.1",
+    "react-native-otp-entry": "^1.8.6",
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^4.26.2"
   },

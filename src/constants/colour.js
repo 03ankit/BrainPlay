@@ -1,11 +1,27 @@
 export const colors = {
     primary: "#4F46E5",
+    primaryLight: "#EEF2FF",
     secondary: "#F5F3FF",
     white: "#FFFFFF",
+    black: "#000000",
     gray: "#64748B",
+    grayDark: "#475569",
+    grayLight: "#CBD5E1",
+    grayLighter: "#F1F5F9",
     darkGray: "#111827",
     lightGray: "#F9FAFB",
-
+    background: "#F8FAFC",
+    avatarBg: "#E2E8F0",
+    darkBlue: "#1E293B",
+    darkPurple: "#2D1B69",
+    red: "#EF4444",
+    green: "#10B981",
+    orange: "#F59E0B",
+    purplePlay: "#6A4BFF",
+    rose: "#E11D48",
+    purpleLight: "#A855F7",
+    blue: "#3B82F6",
+    violet: "#8B5CF6",
 };
 
 export default colors;

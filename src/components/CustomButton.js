@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import colors from '../constants/colour';
+import fonts from '../constants/fonts';
 
 export default function CustomButton({
   title,
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
   text: {
     color: colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.bold,
   },
   arrow: {
     fontSize: 18,

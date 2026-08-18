@@ -92,6 +92,7 @@ export default function Signup({ navigation }) {
                             keyboardType="email-address"
                             autoCapitalize="none"
                             placeholder="Enter email"
+                            rightIcon={images.mail}
                         />
 
                         <CustomButton
@@ -101,7 +102,7 @@ export default function Signup({ navigation }) {
                             loading={loading}
                             textStyle={styles.continueText}
                         />
-
+                        {/* 
                         <View style={styles.dividerRow}>
                             <View style={styles.dividerLine} />
                             <Text style={styles.dividerText}>OR</Text>
@@ -118,7 +119,7 @@ export default function Signup({ navigation }) {
                         >
                             <View style={styles.googleIcon} />
                             <Text style={styles.googleText}>Sign in with Google</Text>
-                        </Pressable>
+                        </Pressable> */}
 
                         {/* <View style={styles.footerTextRow}>
                             <Text style={styles.footerText}>Already have an account? </Text>
