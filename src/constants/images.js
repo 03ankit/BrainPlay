@@ -12,6 +12,15 @@ export const images = {
     home: require('../assets/image/home.png'),
     game: require('../assets/image/console.png'),
     champions: require('../assets/image/football.png'),
+    settings: require('../assets/image/setting.png'),
+    share: require('../assets/image/share.png'),
+    exit: require('../assets/image/exit.png'),
+    next: require('../assets/image/next.png'),
+    star: require('../assets/image/star.png'),
+    music: require('../assets/image/music-on.png'),
+    volume: require('../assets/image/volume.png'),
+    vibration: require('../assets/image/vibrate-mode.png'),
+    lock: require('../assets/image/lock.png'),
 
 };
 
