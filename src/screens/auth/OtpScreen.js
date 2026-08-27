@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
     Dimensions,
     StyleSheet,
@@ -14,6 +14,7 @@ import colors from '../../constants/colour';
 import fonts from '../../constants/fonts';
 import CustomButton from '../../components/CustomButton';
 import KeyBoardAvoidingView from '../../components/KeyBoardAvoidingView';
+import PacmanOtpSuccessAnimation from '../../components/PacmanOtpAnimation';
 
 const { width: screenWidth } = Dimensions.get('window');
 const cellWidth = Math.min(46, Math.floor((screenWidth - 96) / 6));
@@ -23,28 +24,65 @@ export default function OtpScreen({ route, navigation }) {
     const [code, setCode] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    // State machine: 'idle' | 'verifying' | 'successAnimation' | 'verified' | 'error'
+    const [status, setStatus] = useState('idle');
+    const otpRef = useRef(null);
 
-    const canVerify = useMemo(() => code.trim().length === 6 && !loading, [code, loading]);
+    const canVerify = useMemo(
+        () => code.trim().length === 6 && !loading && status === 'idle',
+        [code, loading, status]
+    );
 
     const handleVerify = async (otpCode) => {
         const verifyCode = otpCode || code;
-        if (verifyCode.trim().length !== 6) return;
+        if (verifyCode.trim().length !== 6 || status !== 'idle') return;
 
         setLoading(true);
+        setStatus('verifying');
         setError('');
         try {
+            // Simulate API verification call delay
+            await new Promise((resolve) => setTimeout(resolve, 600));
+
             if (verifyCode === '111111') {
-                navigation?.navigate?.('Profile');
+                // API CONFIRMED CORRECT -> Trigger post-verification Pac-Man animation sequence!
+                setStatus('successAnimation');
             } else {
-                setError('Invalid OTP');
+                // API WRONG OTP -> Shake + ✕, then clear OTP for retry
+                setStatus('error');
+                setError('Incorrect OTP');
+                setTimeout(() => {
+                    setStatus('idle');
+                    setCode('');
+                    setError('');
+                    otpRef.current?.clear();
+                }, 2000);
             }
+        } catch (err) {
+            setStatus('error');
+            setError('Verification failed');
+            setTimeout(() => {
+                setStatus('idle');
+                setCode('');
+                setError('');
+                otpRef.current?.clear();
+            }, 2000);
         } finally {
             setLoading(false);
         }
     };
 
+    const handleAnimationComplete = () => {
+        setStatus('verified');
+        setTimeout(() => {
+            navigation?.navigate?.('Profile');
+        }, 800);
+    };
+
     const handleResend = () => {
         console.log('Resend OTP');
+        setStatus('idle');
+        setError('');
     };
 
     return (
@@ -71,34 +109,43 @@ export default function OtpScreen({ route, navigation }) {
                     </Text>
 
                     <View style={styles.otpWrapper}>
-                        <OtpInput
+                        <PacmanOtpSuccessAnimation
+                            code={code}
                             numberOfDigits={6}
-                            onTextChange={(text) => {
-                                setCode(text);
-                                if (error) setError('');
-                            }}
-                            onFilled={(text) => {
-                                setCode(text);
-                                handleVerify(text);
-                            }}
-                            theme={{
-                                containerStyle: styles.otpInputContainer,
-                                pinCodeContainerStyle: [
-                                    styles.otpCell,
-                                    { width: cellWidth, height: cellWidth * 1.2 }
-                                ],
-                                pinCodeTextStyle: styles.otpPinCodeText,
-                                focusedPinCodeContainerStyle: styles.otpCellFocused,
-                                filledPinCodeContainerStyle: styles.otpCellFilled,
-                            }}
-                            textInputProps={{
-                                keyboardType: 'number-pad',
-                                maxLength: 6,
-                            }}
-                        />
+                            status={status}
+                            errorMessage={error || 'Incorrect OTP'}
+                            onAnimationComplete={handleAnimationComplete}
+                            cellHeight={cellWidth * 1.2}
+                        >
+                            <OtpInput
+                                ref={otpRef}
+                                numberOfDigits={6}
+                                onTextChange={(text) => {
+                                    setCode(text);
+                                    if (status !== 'idle') setStatus('idle');
+                                    if (error) setError('');
+                                }}
+                                onFilled={(text) => {
+                                    setCode(text);
+                                    handleVerify(text);
+                                }}
+                                theme={{
+                                    containerStyle: styles.otpInputContainer,
+                                    pinCodeContainerStyle: [
+                                        styles.otpCell,
+                                        { width: cellWidth, height: cellWidth * 1.2 }
+                                    ],
+                                    pinCodeTextStyle: styles.otpPinCodeText,
+                                    focusedPinCodeContainerStyle: styles.otpCellFocused,
+                                    filledPinCodeContainerStyle: styles.otpCellFilled,
+                                }}
+                                textInputProps={{
+                                    keyboardType: 'number-pad',
+                                    maxLength: 6,
+                                }}
+                            />
+                        </PacmanOtpSuccessAnimation>
                     </View>
-
-                    {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                     <TouchableOpacity onPress={handleResend} style={styles.resendButton}>
                         <Text style={styles.resendText}>
@@ -246,5 +293,3 @@ const styles = StyleSheet.create({
         color: colors.primary,
     },
 });
-
-
