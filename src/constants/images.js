@@ -21,7 +21,7 @@ export const images = {
     volume: require('../assets/image/volume.png'),
     vibration: require('../assets/image/vibrate-mode.png'),
     lock: require('../assets/image/lock.png'),
-
+    word_jumble_bg: require('../assets/image/word_jumble_bg.jpg'),
 };
 
 export default images;

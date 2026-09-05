@@ -22,6 +22,14 @@ export const colors = {
     purpleLight: "#A855F7",
     blue: "#3B82F6",
     violet: "#8B5CF6",
+    greenLight: "#D1FAE5",
+    greenDark: "#047857",
+    orangeLight: "#FEF3C7",
+    orangeDark: "#B45309",
+    redLight: "#FEE2E2",
+    redDark: "#B91C1C",
+    violetLight: "#EDE9FE",
+    violetDark: "#6D28D9",
 };
 
 export default colors;

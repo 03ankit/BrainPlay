@@ -1,158 +1,199 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+    Animated,
     Dimensions,
+    Image,
+    StatusBar,
     StyleSheet,
     Text,
-    View,
     TouchableOpacity,
-    Image
+    View,
 } from 'react-native';
-import { OtpInput } from 'react-native-otp-entry';
 import CommonHeader from '../../components/CommonHeader';
 import images from '../../constants/images';
 import colors from '../../constants/colour';
 import fonts from '../../constants/fonts';
 import CustomButton from '../../components/CustomButton';
 import KeyBoardAvoidingView from '../../components/KeyBoardAvoidingView';
-import PacmanOtpSuccessAnimation from '../../components/PacmanOtpAnimation';
+import OtpInputBox from '../../components/OtpInputBox';
 
 const { width: screenWidth } = Dimensions.get('window');
-const cellWidth = Math.min(46, Math.floor((screenWidth - 96) / 6));
+const cellWidth = Math.min(50, Math.floor((screenWidth - 90) / 6));
 
 export default function OtpScreen({ route, navigation }) {
     const email = route?.params?.email;
     const [code, setCode] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    // State machine: 'idle' | 'verifying' | 'successAnimation' | 'verified' | 'error'
-    const [status, setStatus] = useState('idle');
-    const otpRef = useRef(null);
+    const [animating, setAnimating] = useState(false);
+
+    const otpInputRef = useRef(null);
+    const animatingRef = useRef(false);
+    const shakeAnim = useRef(new Animated.Value(0)).current;
 
     const canVerify = useMemo(
-        () => code.trim().length === 6 && !loading && status === 'idle',
-        [code, loading, status]
+        () => code.trim().length === 6 && !loading && !animating,
+        [code, loading, animating]
     );
+
+    // Reset OTP form and animation state (prevents stale state upon back-navigation)
+    const resetOtpForm = useCallback(() => {
+        animatingRef.current = false;
+        setAnimating(false);
+        setLoading(false);
+        setError('');
+        setCode('');
+        otpInputRef.current?.resetAnimation?.();
+    }, []);
+
+    useEffect(() => {
+        const unsubscribe = navigation?.addListener?.('focus', () => {
+            resetOtpForm();
+        });
+        return unsubscribe;
+    }, [navigation, resetOtpForm]);
+
+    // Play Pac-Man animation on backend success, then navigate
+    const playSuccessThen = (afterNavigate) => {
+        if (animatingRef.current) return;
+        animatingRef.current = true;
+        setAnimating(true);
+        setLoading(false);
+        setError('');
+
+        if (!otpInputRef.current?.playSuccessAnimation) {
+            afterNavigate();
+            return;
+        }
+
+        otpInputRef.current.playSuccessAnimation({
+            onComplete: afterNavigate,
+        });
+    };
+
+    // Trigger error shake animation
+    const triggerShake = () => {
+        Animated.sequence([
+            Animated.timing(shakeAnim, { toValue: -12, duration: 50, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: 12, duration: 50, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: -8, duration: 50, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: 8, duration: 50, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: -4, duration: 50, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: 4, duration: 50, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+        ]).start();
+    };
 
     const handleVerify = async (otpCode) => {
         const verifyCode = otpCode || code;
-        if (verifyCode.trim().length !== 6 || status !== 'idle') return;
+        if (verifyCode.trim().length !== 6 || loading || animatingRef.current) return;
 
         setLoading(true);
-        setStatus('verifying');
         setError('');
         try {
-            // Simulate API verification call delay
-            await new Promise((resolve) => setTimeout(resolve, 600));
+            // Simulated backend verification request
+            await new Promise((resolve) => setTimeout(resolve, 500));
 
+            // Backend success rule (111111 accepted in test/staging)
             if (verifyCode === '111111') {
-                // API CONFIRMED CORRECT -> Trigger post-verification Pac-Man animation sequence!
-                setStatus('successAnimation');
+                playSuccessThen(() => {
+                    navigation?.navigate?.('Profile', { email });
+                });
             } else {
-                // API WRONG OTP -> Shake + ✕, then clear OTP for retry
-                setStatus('error');
-                setError('Incorrect OTP');
-                setTimeout(() => {
-                    setStatus('idle');
-                    setCode('');
-                    setError('');
-                    otpRef.current?.clear();
-                }, 2000);
+                // Backend verification failed
+                setLoading(false);
+                setError('Incorrect OTP. Please try again.');
+                triggerShake();
             }
-        } catch (err) {
-            setStatus('error');
-            setError('Verification failed');
-            setTimeout(() => {
-                setStatus('idle');
-                setCode('');
-                setError('');
-                otpRef.current?.clear();
-            }, 2000);
-        } finally {
+        } catch {
             setLoading(false);
+            setError('Verification failed. Please try again.');
+            triggerShake();
         }
     };
 
-    const handleAnimationComplete = () => {
-        setStatus('verified');
-        setTimeout(() => {
-            navigation?.navigate?.('Profile');
-        }, 800);
-    };
-
     const handleResend = () => {
-        console.log('Resend OTP');
-        setStatus('idle');
+        if (animatingRef.current || loading) return;
         setError('');
+        setCode('');
+        otpInputRef.current?.resetAnimation?.();
+        console.log('Resend OTP to:', email);
     };
 
     return (
         <View style={styles.screen}>
-            {/* Decorative background */}
+            <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+
+            {/* Decorative background matching BrainPlay UI */}
             <View style={styles.bgCircleA} />
             <View style={styles.bgCircleB} />
 
             <CommonHeader
                 title="BrainPlay"
-                onBack={() => navigation.goBack()}
+                onBack={() => navigation?.goBack?.()}
             />
-            <KeyBoardAvoidingView
-                contentContainerStyle={styles.scrollContent}
-            >
+
+            <KeyBoardAvoidingView contentContainerStyle={styles.scrollContent}>
+                {/* Brand Logo Container */}
                 <View style={styles.logoContainer}>
                     <Image source={images.verified} style={styles.logo} />
                 </View>
 
+                {/* White Card */}
                 <View style={styles.card}>
                     <Text style={styles.title}>Verify your email</Text>
                     <Text style={styles.subtitle}>
-                        {email ? `We sent a code to ${email}.` : 'Enter the code sent to your email.'}
+                        {email ? `We sent a code to ${email}.` : 'Enter the 6-digit code sent to your email.'}
                     </Text>
 
-                    <View style={styles.otpWrapper}>
-                        <PacmanOtpSuccessAnimation
-                            code={code}
-                            numberOfDigits={6}
-                            status={status}
-                            errorMessage={error || 'Incorrect OTP'}
-                            onAnimationComplete={handleAnimationComplete}
-                            cellHeight={cellWidth * 1.2}
-                        >
-                            <OtpInput
-                                ref={otpRef}
-                                numberOfDigits={6}
-                                onTextChange={(text) => {
-                                    setCode(text);
-                                    if (status !== 'idle') setStatus('idle');
-                                    if (error) setError('');
-                                }}
-                                onFilled={(text) => {
-                                    setCode(text);
-                                    handleVerify(text);
-                                }}
-                                theme={{
-                                    containerStyle: styles.otpInputContainer,
-                                    pinCodeContainerStyle: [
-                                        styles.otpCell,
-                                        { width: cellWidth, height: cellWidth * 1.2 }
-                                    ],
-                                    pinCodeTextStyle: styles.otpPinCodeText,
-                                    focusedPinCodeContainerStyle: styles.otpCellFocused,
-                                    filledPinCodeContainerStyle: styles.otpCellFilled,
-                                }}
-                                textInputProps={{
-                                    keyboardType: 'number-pad',
-                                    maxLength: 6,
-                                }}
-                            />
-                        </PacmanOtpSuccessAnimation>
-                    </View>
+                    {/* Animated shake wrapper for error feedback */}
+                    <Animated.View
+                        style={[
+                            styles.otpWrapper,
+                            { transform: [{ translateX: shakeAnim }] },
+                        ]}
+                    >
+                        <OtpInputBox
+                            ref={otpInputRef}
+                            value={code}
+                            setValue={(text) => {
+                                setCode(text);
+                                if (error) setError('');
+                            }}
+                            error={!!error}
+                            cellCount={6}
+                            cellWidth={cellWidth}
+                            cellHeight={cellWidth * 1.18}
+                            locked={loading || animating}
+                            onFilled={(filledCode) => {
+                                handleVerify(filledCode);
+                            }}
+                        />
+                    </Animated.View>
 
-                    <TouchableOpacity onPress={handleResend} style={styles.resendButton}>
-                        <Text style={styles.resendText}>
+                    {/* Error message */}
+                    {error ? (
+                        <Text style={styles.errorText}>{error}</Text>
+                    ) : null}
+
+                    {/* Resend Link */}
+                    <TouchableOpacity
+                        onPress={handleResend}
+                        style={styles.resendButton}
+                        disabled={animating || loading}
+                        activeOpacity={0.7}
+                    >
+                        <Text
+                            style={[
+                                styles.resendText,
+                                (animating || loading) && styles.resendTextDisabled,
+                            ]}
+                        >
                             Resend OTP
                         </Text>
                     </TouchableOpacity>
 
+                    {/* Verify Action Button */}
                     <CustomButton
                         title="Verify"
                         onPress={() => handleVerify()}
@@ -213,8 +254,8 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     logo: {
-        width: 50,
-        height: 50,
+        width: 48,
+        height: 48,
         resizeMode: 'contain',
         tintColor: colors.secondary,
     },
@@ -222,8 +263,8 @@ const styles = StyleSheet.create({
         width: '100%',
         backgroundColor: colors.white,
         borderRadius: 28,
-        paddingHorizontal: 20,
-        paddingTop: 26,
+        paddingHorizontal: 18,
+        paddingTop: 24,
         paddingBottom: 24,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 10 },
@@ -242,44 +283,20 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: colors.gray,
         textAlign: 'center',
-        marginBottom: 22,
+        marginBottom: 20,
         fontFamily: fonts.medium,
         lineHeight: 20,
     },
     otpWrapper: {
         width: '100%',
-        marginBottom: 10,
-    },
-    otpInputContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '100%',
-    },
-    otpCell: {
-        borderRadius: 12,
-        backgroundColor: colors.lightGray,
-        borderWidth: 1.5,
-        borderColor: '#E2E8F0',
-    },
-    otpCellFocused: {
-        borderColor: colors.primary,
-        borderWidth: 2,
-        backgroundColor: colors.white,
-    },
-    otpCellFilled: {
-        backgroundColor: colors.white,
-        borderColor: colors.primary,
-    },
-    otpPinCodeText: {
-        fontSize: 20,
-        fontFamily: fonts.bold,
-        color: colors.darkGray,
+        alignItems: 'center',
+        marginBottom: 6,
     },
     errorText: {
-        color: '#EF4444',
+        color: colors.red,
         fontSize: 13,
         fontFamily: fonts.medium,
-        marginTop: 4,
+        marginTop: 2,
         textAlign: 'center',
         marginBottom: 8,
     },
@@ -291,5 +308,8 @@ const styles = StyleSheet.create({
         fontFamily: fonts.bold,
         fontSize: 14,
         color: colors.primary,
+    },
+    resendTextDisabled: {
+        opacity: 0.5,
     },
 });

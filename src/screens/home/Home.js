@@ -15,8 +15,14 @@ const games = [
     { id: '5', title: 'Word Search', difficulty: 'EASY', diffColor: colors.green, hs: 3200, icon: '🔍', color: colors.violet },
 ];
 
-export default function Home() {
+export default function Home({ navigation }) {
     const insets = useSafeAreaInsets();
+
+    const handlePlayGame = (game) => {
+        if (game.title === 'Word Jumble') {
+            navigation.navigate('SelectLevel');
+        }
+    };
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -70,7 +76,12 @@ export default function Home() {
                 {/* Games Grid */}
                 <View style={styles.gridContainer}>
                     {games.map((game) => (
-                        <View key={game.id} style={styles.gameCard}>
+                        <TouchableOpacity
+                            key={game.id}
+                            style={styles.gameCard}
+                            activeOpacity={0.85}
+                            onPress={() => handlePlayGame(game)}
+                        >
                             <View style={[styles.iconContainer, { backgroundColor: game.color }]}>
                                 <Text style={styles.iconText}>{game.icon}</Text>
                             </View>
@@ -83,10 +94,10 @@ export default function Home() {
 
                             <Text style={styles.hsText}>HS: {game.hs}</Text>
 
-                            <TouchableOpacity style={styles.playButton}>
+                            <View style={styles.playButton}>
                                 <Text style={styles.playButtonText}>Play</Text>
-                            </TouchableOpacity>
-                        </View>
+                            </View>
+                        </TouchableOpacity>
                     ))}
                 </View>
 
