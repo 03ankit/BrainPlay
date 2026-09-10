@@ -16,7 +16,10 @@ import GameBottomActionBar from '../../components/game/GameBottomActionBar';
 import images from '../../constants/images';
 import colors from '../../constants/colour';
 
-export default function WordJumbleDetail({ navigation }) {
+export default function WordJumbleDetail({ navigation, route }) {
+    const gameTitle = route?.params?.game || route?.params?.title || 'Word Jumble';
+    const levelNumber = route?.params?.level || 12;
+
     const handleBack = () => {
         if (navigation && navigation.canGoBack()) {
             navigation.goBack();
@@ -26,7 +29,7 @@ export default function WordJumbleDetail({ navigation }) {
     const handleShare = async () => {
         try {
             await Share.share({
-                message: 'Can you solve the Word Jumble puzzle on BrainPlay? Play now!',
+                message: `Can you solve ${gameTitle} Level ${levelNumber} on BrainPlay? Play now!`,
             });
         } catch (error) {
             console.log('Share error:', error);
@@ -34,7 +37,7 @@ export default function WordJumbleDetail({ navigation }) {
     };
 
     const handleStartGame = () => {
-        Alert.alert('Start Game', 'Word Jumble round starting now!', [
+        Alert.alert('Start Game', `${gameTitle} - Level ${levelNumber} round starting now!`, [
             { text: 'Let\'s Play', onPress: () => console.log('Game Started') }
         ]);
     };
@@ -57,7 +60,7 @@ export default function WordJumbleDetail({ navigation }) {
         <View style={styles.container}>
             {/* Screen Header */}
             <Header
-                title="Word Jumble"
+                title={gameTitle}
                 showBack={true}
                 onBack={handleBack}
                 rightComponent={shareButton}
@@ -70,8 +73,8 @@ export default function WordJumbleDetail({ navigation }) {
             >
                 {/* 1. Hero Banner Card */}
                 <GameBannerCard
-                    category="PUZZLE CATEGORY"
-                    title="Word Jumble"
+                    category="ARCADE LEVEL MAP"
+                    title={gameTitle}
                     imageSource={images.word_jumble_bg}
                 />
 

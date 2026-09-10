@@ -1,68 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
     ScrollView,
+    Dimensions,
     Image,
-    SafeAreaView,
-    FlatList,
-    Dimensions
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../../constants/colour';
 import fonts from '../../constants/fonts';
-import images from '../../constants/images'; 
-import LevelCard from '../../components/game/LevelCard';
+import images from '../../constants/images';
+import { MapLevelNode, BossSummitCard } from '../../components/game/LevelCard';
 
 const { width } = Dimensions.get('window');
 
-const filters = [
-    { id: 'all', label: 'All', color: colors.primary, dotColor: null, bgColor: colors.primary, textColor: colors.white },
-    { id: 'easy', label: 'Easy', color: colors.green, dotColor: colors.green, bgColor: colors.greenLight, textColor: colors.greenDark },
-    { id: 'medium', label: 'Medium', color: colors.orange, dotColor: colors.orange, bgColor: colors.orangeLight, textColor: colors.orangeDark },
-    { id: 'hard', label: 'Hard', color: colors.red, dotColor: colors.red, bgColor: colors.redLight, textColor: colors.redDark },
-    { id: 'boss', label: 'Boss', color: colors.violet, dotColor: colors.violet, bgColor: colors.violetLight, textColor: colors.violetDark },
+/**
+ * Node placement on X-axis across the winding serpentine road (0 to 1 ratio)
+ * Nodes are ordered from top to bottom (Level 20 -> Level 1)
+ */
+const mapNodesData = [
+    { level: 19, xRatio: 0.78, status: 'locked', world: 4 },
+    { level: 18, xRatio: 0.50, status: 'locked', world: 3 },
+    { level: 17, xRatio: 0.80, status: 'locked', world: 3 },
+    { level: 16, xRatio: 0.22, status: 'locked', world: 3 },
+    { level: 15, xRatio: 0.48, status: 'locked', world: 3 },
+    { level: 14, xRatio: 0.20, status: 'locked', world: 3 },
+    { level: 13, xRatio: 0.32, status: 'locked', world: 3 },
+    { level: 12, xRatio: 0.50, status: 'active', world: 2, title: 'Prefixes & Roots' },
+    { level: 11, xRatio: 0.80, status: 'completed', stars: 3, world: 2 },
+    { level: 10, xRatio: 0.22, status: 'completed', stars: 3, world: 2 },
+    { level: 9, xRatio: 0.58, status: 'completed', stars: 3, world: 2 },
+    { level: 8, xRatio: 0.24, status: 'completed', stars: 2, world: 2 },
+    { level: 7, xRatio: 0.80, status: 'completed', stars: 3, world: 2 },
+    { level: 6, xRatio: 0.50, status: 'completed', stars: 3, world: 2 },
+    { level: 5, xRatio: 0.22, status: 'completed', stars: 3, world: 1 },
+    { level: 4, xRatio: 0.78, status: 'completed', stars: 3, world: 1 },
+    { level: 3, xRatio: 0.44, status: 'completed', stars: 3, world: 1 },
+    { level: 2, xRatio: 0.78, status: 'completed', stars: 3, world: 1 },
+    { level: 1, xRatio: 0.50, status: 'completed', stars: 3, world: 1, sideAnnotation: { type: 'start', text: 'STARTING POINT' } },
 ];
 
-const generateLevels = () => {
-    const generated = [];
-    for (let i = 1; i <= 20; i++) {
-        let type = 'Easy';
-        let shortType = 'Easy';
-        if (i > 5 && i <= 11) { type = 'Medium'; shortType = 'Med'; }
-        else if (i > 11 && i <= 18) { type = 'Hard'; shortType = 'Hard'; }
-        else if (i === 19) { type = 'Expert'; shortType = 'Expert'; }
-        
-        let isLocked = i > 12;
-        let isCurrent = i === 12;
-        let stars = (!isLocked && !isCurrent) ? (i === 8 || i === 11 ? 2 : 3) : 0;
-
-        if (i === 20) {
-            generated.push({ id: `lvl_empty`, isEmpty: true });
-            generated.push({ id: `lvl_${i}`, level: 20, type: 'Boss', shortType: 'Boss', isLocked: true, isBoss: true, subtitle: 'Final Boss' });
-        } else {
-            generated.push({
-                id: `lvl_${i}`,
-                level: i,
-                type: type,
-                shortType: shortType,
-                isLocked,
-                isCurrent,
-                stars,
-                isBoss: false
-            });
-        }
-    }
-    return generated;
-};
-
-const levels = generateLevels();
-
-export default function SelectLevel({ navigation }) {
+export default function SelectLevel({ navigation, route }) {
     const insets = useSafeAreaInsets();
-    const [activeFilter, setActiveFilter] = useState('all');
+    const scrollViewRef = useRef(null);
+
+    // Get game info from navigation params or fallback to default
+    const gameParam = route?.params?.game;
+    const gameTitle = route?.params?.title || (typeof gameParam === 'string' ? gameParam : gameParam?.title) || 'Word Odyssey';
+
+    // Currently selected level to show and play in bottom bar
+    const [selectedLevel, setSelectedLevel] = useState(12);
 
     const handleBack = () => {
         if (navigation && navigation.canGoBack()) {
@@ -70,107 +59,235 @@ export default function SelectLevel({ navigation }) {
         }
     };
 
-    const renderHeader = () => (
-        <View style={styles.header}>
-            <View style={styles.headerLeft}>
-                <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                    {images?.back ? <Image source={images.back} style={styles.backIcon} /> : <Text style={styles.backText}>←</Text>}
-                </TouchableOpacity>
-                <View style={styles.headerTextContainer}>
-                    <Text style={styles.headerTitle}>Select Level</Text>
-                    <Text style={styles.headerSubtitle}>BrainPlay Arcade</Text>
-                </View>
-            </View>
-            <View style={styles.headerRight}>
-                <View style={styles.starPill}>
-                    <Text style={styles.starText}>⭐ 34/60</Text>
-                </View>
-            </View>
-        </View>
-    );
-    
-    const renderSubHeader = () => (
-        <View style={styles.subHeader}>
-            <View style={styles.subHeaderLeft}>
-                <View style={styles.gamePill}>
-                    <Text style={styles.gamePillText}>Word Jumble</Text>
-                </View>
-                <Text style={styles.levelsText}>Levels 1–20</Text>
-            </View>
-            <View style={styles.currentLevelPill}>
-                <View style={styles.dotCurrent} />
-                <Text style={styles.currentLevelText}>Current: Level 12</Text>
-            </View>
-        </View>
-    );
+    // Selecting level on node tap
+    const handleNodePress = (level) => {
+        if (level <= 12) {
+            setSelectedLevel(level);
+        }
+    };
 
-    const renderFilters = () => (
-        <View style={styles.filterContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-                {filters.map((filter) => {
-                    const isActive = activeFilter === filter.id;
-                    return (
-                        <TouchableOpacity
-                            key={filter.id}
-                            style={[
-                                styles.filterChip,
-                                { backgroundColor: filter.bgColor },
-                                isActive && filter.id === 'all' ? { backgroundColor: colors.primary } : null,
-                                !isActive && filter.id === 'all' ? { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.primary } : null
-                            ]}
-                            onPress={() => setActiveFilter(filter.id)}
-                        >
-                            {filter.dotColor && <View style={[styles.filterDot, { backgroundColor: filter.dotColor }]} />}
-                            <Text style={[styles.filterText, { color: filter.textColor }, !isActive && filter.id === 'all' ? { color: colors.primary } : null]}>
-                                {filter.label}
-                            </Text>
-                        </TouchableOpacity>
-                    );
-                })}
-            </ScrollView>
-        </View>
-    );
+    // Play the selected level
+    const handlePlaySelectedLevel = () => {
+        navigation.navigate('WordJumbleDetail', { level: selectedLevel, game: gameTitle });
+    };
+
+    const handlePlayBoss = () => {
+        // Direct action if boss is unlocked, otherwise silently ignore
+    };
+
+    // Calculate layout positions for continuous Bézier S-curves connecting each node
+    const BOSS_CARD_HEIGHT = 180;
+
+    // Compute exact center (x, y) coordinates for all items in the list
+    let currentY = BOSS_CARD_HEIGHT + 10;
+    const itemPositions = mapNodesData.map(item => {
+        const rowHeight = item.status === 'active' ? 104 : 80;
+        const centerX = (width - 40) * item.xRatio + 20;
+        const centerY = currentY + (item.status === 'active' ? 52 : 38);
+        const pos = {
+            type: 'node',
+            level: item.level,
+            world: item.world,
+            status: item.status,
+            x: centerX,
+            y: centerY,
+            yTop: currentY,
+            height: rowHeight,
+            xRatio: item.xRatio,
+        };
+        currentY += rowHeight;
+        return pos;
+    });
+
+    const totalCanvasHeight = currentY + 120;
+
+    // Generate smooth Bézier S-curve connecting path segments
+    const renderedPaths = [];
+    const nodeOnlyPositions = itemPositions.filter(p => p.type === 'node');
+
+    for (let i = 0; i < nodeOnlyPositions.length - 1; i++) {
+        const nodeA = nodeOnlyPositions[i];
+        const nodeB = nodeOnlyPositions[i + 1];
+
+        // Path color based on zone
+        let pathColor = colors.world1.dash;
+        let isDashed = false;
+
+        if (nodeA.world === 2 && nodeB.world === 2) {
+            pathColor = colors.world2.dash;
+        } else if (nodeA.level === 13 || nodeA.level === 12 || nodeB.level === 12) {
+            pathColor = colors.activeNode.bg;
+        } else if (nodeA.world === 3 || nodeB.world === 3) {
+            pathColor = colors.lockedNode.dash;
+            isDashed = true;
+        } else if (nodeA.world === 4 || nodeB.world === 4) {
+            pathColor = colors.world3.primary;
+        }
+
+        const deltaX = nodeB.x - nodeA.x;
+        const deltaY = nodeB.y - nodeA.y;
+
+        // Cubic Bézier control points for natural S-curve road
+        const isVertical = Math.abs(deltaX) < 30;
+        const wobble = isVertical ? (i % 2 === 0 ? 36 : -36) : 0;
+
+        const c1X = nodeA.x + deltaX * 0.15 + wobble;
+        const c1Y = nodeA.y + deltaY * 0.65;
+        const c2X = nodeB.x - deltaX * 0.15 - wobble;
+        const c2Y = nodeA.y + deltaY * 0.35;
+
+        // Sample points along the curve
+        const steps = 14;
+        const curveDots = [];
+        for (let s = 1; s < steps; s++) {
+            if (isDashed && s % 2 === 1) continue; // Alternate for dashed road look
+            const t = s / steps;
+            const oneMinusT = 1 - t;
+            const dotX =
+                oneMinusT * oneMinusT * oneMinusT * nodeA.x +
+                3 * oneMinusT * oneMinusT * t * c1X +
+                3 * oneMinusT * t * t * c2X +
+                t * t * t * nodeB.x;
+            const dotY =
+                oneMinusT * oneMinusT * oneMinusT * nodeA.y +
+                3 * oneMinusT * oneMinusT * t * c1Y +
+                3 * oneMinusT * t * t * c2Y +
+                t * t * t * nodeB.y;
+
+            curveDots.push({ x: dotX, y: dotY, key: `dot_${nodeA.level}_${nodeB.level}_${s}` });
+        }
+
+        renderedPaths.push({
+            dots: curveDots,
+            pathColor,
+            key: `path_${nodeA.level}_${nodeB.level}`,
+        });
+    }
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
-            {renderHeader()}
-            
-            {/* White wrapper for content below header */}
-            <View style={styles.contentWrapper}>
-                {renderSubHeader()}
-                {renderFilters()}
 
-                <View style={styles.cardsContainer}>
-                    <FlatList
-                        data={levels}
-                        renderItem={({ item }) => <LevelCard item={item} />}
-                        keyExtractor={item => item.id}
-                        numColumns={3}
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={styles.cardsList}
-                        columnWrapperStyle={styles.row}
-                        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-                    />
+            {/* Top Game Header Bar */}
+            <View style={styles.topHeader}>
+                <View style={styles.topHeaderLeft}>
+                    <TouchableOpacity onPress={handleBack} style={styles.backButton} activeOpacity={0.7}>
+                        <Image source={images.back} style={styles.backIcon} />
+                    </TouchableOpacity>
+                    <View style={styles.headerTextGroup}>
+                        <View style={styles.titleWithBadge}>
+                            <Text style={styles.appTitle} numberOfLines={1}>BrainPlay</Text>
+                            <View style={styles.arcadeBadge}>
+                                <Text style={styles.arcadeText}>ARCADE</Text>
+                            </View>
+                        </View>
+                        <Text style={styles.mapSubtitle} numberOfLines={1}>{gameTitle} Map</Text>
+                    </View>
                 </View>
             </View>
 
-            {/* Bottom Floating Action Bar */}
-            <View style={[styles.bottomBarContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+            {/* Clean Subheader: Active Level and Total Stars Only */}
+            <View style={styles.infoSubHeader}>
+                <View style={styles.activeLevelIndicator}>
+                    <View style={styles.activeDot} />
+                    <Text style={styles.activeLevelIndicatorText} numberOfLines={1}>Active: Level {selectedLevel}</Text>
+                </View>
+                <View style={styles.totalStarsPill}>
+                    <Text style={styles.totalStarsText}>⭐ 34/60 Stars</Text>
+                </View>
+            </View>
+
+            {/* Serpentine Map Path Content */}
+            <ScrollView
+                ref={scrollViewRef}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={[styles.mapScrollContent, { minHeight: totalCanvasHeight }]}
+            >
+                {/* Connecting Winding Road Paths (rendered beneath nodes) */}
+                <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+                    {renderedPaths.map(p =>
+                        p.dots.map(d => (
+                            <View
+                                key={d.key}
+                                style={[
+                                    styles.pathRoadDot,
+                                    {
+                                        left: d.x - 3.5,
+                                        top: d.y - 3.5,
+                                        backgroundColor: p.pathColor,
+                                    },
+                                ]}
+                            />
+                        ))
+                    )}
+                </View>
+
+                {/* Boss Summit at Top */}
+                <BossSummitCard onPlayBoss={handlePlayBoss} />
+
+                {/* Map Nodes */}
+                <View style={styles.pathNodesContainer}>
+                    {mapNodesData.map((item) => {
+                        // Calculate horizontal center offset
+                        const leftOffset = (width - 40) * item.xRatio - 25;
+
+                        return (
+                            <View
+                                key={`node_wrapper_${item.level}`}
+                                style={[
+                                    styles.nodeRow,
+                                    { height: item.status === 'active' ? 104 : 80 },
+                                ]}
+                            >
+                                <View style={[styles.nodeAbsoluteContainer, { left: leftOffset }]}>
+                                    <MapLevelNode
+                                        level={item.level}
+                                        status={item.status}
+                                        stars={item.stars || 3}
+                                        title={item.title}
+                                        world={item.world}
+                                        sideAnnotation={item.sideAnnotation}
+                                        onPress={handleNodePress}
+                                        isSelected={selectedLevel === item.level}
+                                    />
+                                </View>
+                            </View>
+                        );
+                    })}
+                </View>
+
+                {/* Bottom Padding for floating footer */}
+                <View style={{ height: 110 }} />
+            </ScrollView>
+
+            {/* Sticky Bottom Action Bar */}
+            <View style={[styles.bottomBarWrapper, { paddingBottom: Math.max(insets.bottom, 12) }]}>
                 <View style={styles.bottomBar}>
-                    <View style={styles.bottomLeft}>
-                        <View style={styles.currentStageCircle}>
-                            <Text style={styles.currentStageLevel}>12</Text>
+                    {/* Selected Level Indicator */}
+                    <View style={styles.bottomBarLeft}>
+                        <View style={styles.stageLevelBadge}>
+                            <Text style={styles.stageLevelText}>LVL {selectedLevel}</Text>
                         </View>
-                        <View style={styles.currentStageTextContainer}>
-                            <Text style={styles.currentStageLabel}>CURRENT STAGE</Text>
-                            <Text style={styles.currentStageTitle}>Stage 12 • Prefixes & Roots</Text>
+                        <View style={styles.stageDetails}>
+                            <View style={styles.activeStageTag}>
+                                <Text style={styles.activeStageTagText} numberOfLines={1}>SELECTED LEVEL</Text>
+                            </View>
+                            <Text style={styles.stageName} numberOfLines={1}>
+                                {selectedLevel === 12 ? 'Prefixes & Roots' : `Level ${selectedLevel} Challenge`}
+                            </Text>
                         </View>
                     </View>
-                    <TouchableOpacity style={styles.playButton} onPress={() => navigation.navigate('WordJumbleDetail')}>
-                        <Text style={styles.playButtonText}>PLAY LEVEL 12 ▶</Text>
+
+                    {/* Play Button without -1 */}
+                    <TouchableOpacity
+                        style={styles.playLevelButton}
+                        activeOpacity={0.88}
+                        onPress={handlePlaySelectedLevel}
+                    >
+                        <Text style={styles.playButtonText} numberOfLines={1}>PLAY LEVEL {selectedLevel} ▶</Text>
                     </TouchableOpacity>
                 </View>
             </View>
+
         </View>
     );
 }
@@ -178,238 +295,284 @@ export default function SelectLevel({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: colors.screenBg,
     },
-    header: {
+    topHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         paddingTop: 10,
-        paddingBottom: 20,
+        paddingBottom: 14,
+        backgroundColor: colors.white,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.grayLighter,
     },
-    headerLeft: {
+    topHeaderLeft: {
         flexDirection: 'row',
         alignItems: 'center',
+        flex: 1,
+        marginRight: 8,
     },
     backButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#FFFFFF',
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: colors.grayLighter,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 5,
-        elevation: 2,
-        marginRight: 16,
+        marginRight: 12,
     },
     backIcon: {
-        width: 20,
-        height: 20,
+        width: 22,
+        height: 22,
         resizeMode: 'contain',
+        tintColor: colors.darkBlue,
     },
-    backText: {
-        fontSize: 24,
-        color: colors.darkGray,
-    },
-    headerTextContainer: {},
-    headerTitle: {
-        fontSize: 18,
-        fontFamily: fonts.bold,
-        color: colors.darkGray,
-        lineHeight: 22,
-    },
-    headerSubtitle: {
-        fontSize: 12,
-        fontFamily: fonts.regular,
-        color: colors.gray,
-    },
-    headerRight: {
-        flexDirection: 'row',
-        gap: 8,
-    },
-    coinPill: {
-        backgroundColor: '#FFFBEB',
-        borderWidth: 1,
-        borderColor: '#FEF3C7',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 16,
-    },
-    coinText: {
-        fontSize: 12,
-        fontFamily: fonts.bold,
-        color: '#D97706',
-    },
-    starPill: {
-        backgroundColor: '#F5F3FF',
-        borderWidth: 1,
-        borderColor: '#EDE9FE',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 16,
-    },
-    starText: {
-        fontSize: 12,
-        fontFamily: fonts.bold,
-        color: '#7C3AED',
-    },
-    contentWrapper: {
+    headerTextGroup: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
-        borderTopWidth: 1,
-        borderTopColor: '#F1F5F9',
     },
-    subHeader: {
+    titleWithBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    appTitle: {
+        fontSize: 20,
+        fontFamily: fonts.bold,
+        fontWeight: '900',
+        color: colors.darkBlue,
+    },
+    arcadeBadge: {
+        backgroundColor: colors.purpleDark,
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    arcadeText: {
+        color: colors.white,
+        fontSize: 9,
+        fontFamily: fonts.bold,
+        fontWeight: '900',
+        letterSpacing: 0.5,
+    },
+    mapSubtitle: {
+        fontSize: 12,
+        fontFamily: fonts.medium,
+        color: colors.gray,
+        marginTop: 2,
+    },
+    topStatsRow: {
+        flexDirection: 'row',
+        gap: 4,
+        flexShrink: 0,
+    },
+    statPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.background,
+        borderWidth: 1,
+        borderColor: colors.avatarBg,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        gap: 4,
+    },
+    statIcon: {
+        fontSize: 11,
+    },
+    statText: {
+        fontSize: 11,
+        fontFamily: fonts.bold,
+        fontWeight: '800',
+        color: colors.darkBlue,
+    },
+    infoSubHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: colors.white,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.grayLighter,
     },
-    subHeaderLeft: {
+    activeLevelIndicator: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
-    },
-    gamePill: {
-        backgroundColor: colors.primary,
+        backgroundColor: colors.primaryLight,
+        borderWidth: 1,
+        borderColor: colors.indigoLight,
         paddingHorizontal: 12,
         paddingVertical: 6,
-        borderRadius: 16,
-    },
-    gamePillText: {
-        color: colors.white,
-        fontSize: 12,
-        fontFamily: fonts.bold,
-    },
-    levelsText: {
-        fontSize: 14,
-        color: colors.darkGray,
-        fontFamily: fonts.medium,
-    },
-    currentLevelPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#EEF2FF',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
+        borderRadius: 14,
         gap: 6,
     },
-    dotCurrent: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
+    activeDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
         backgroundColor: colors.primary,
     },
-    currentLevelText: {
+    activeLevelIndicatorText: {
         color: colors.primary,
         fontSize: 12,
         fontFamily: fonts.bold,
+        fontWeight: '800',
     },
-    filterContainer: {
-        marginBottom: 16,
-    },
-    filterScroll: {
-        paddingHorizontal: 20,
-        gap: 10,
-    },
-    filterChip: {
+    totalStarsPill: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        marginRight: 8,
+        backgroundColor: colors.orangeWarm,
+        borderWidth: 1,
+        borderColor: colors.orangeBorder,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 14,
     },
-    filterDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        marginRight: 6,
+    totalStarsText: {
+        color: colors.orangeDark,
+        fontSize: 12,
+        fontFamily: fonts.bold,
+        fontWeight: '800',
     },
-    filterText: {
-        fontSize: 13,
-        fontFamily: fonts.medium,
+    mapScrollContent: {
+        paddingTop: 8,
+        position: 'relative',
     },
-    cardsContainer: {
-        flex: 1,
-        paddingBottom: 100, // Space for bottom bar
+    decorIcon: {
+        position: 'absolute',
+        zIndex: 1,
     },
-    cardsList: {
-        paddingHorizontal: 20,
-        paddingBottom: 20,
+    pathNodesContainer: {
+        position: 'relative',
+        paddingBottom: 16,
+        zIndex: 2,
     },
-    row: {
-        justifyContent: 'space-between',
+    nodeRow: {
+        position: 'relative',
+        justifyContent: 'center',
+        zIndex: 2,
     },
-    bottomBarContainer: {
+    nodeAbsoluteContainer: {
+        position: 'absolute',
+        zIndex: 10,
+    },
+    pathRoadDot: {
+        position: 'absolute',
+        width: 7,
+        height: 7,
+        borderRadius: 3.5,
+        zIndex: 1,
+    },
+    bottomBarWrapper: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        paddingHorizontal: 20,
+        paddingHorizontal: 12,
+        paddingTop: 6,
+        backgroundColor: 'rgba(247, 248, 252, 0.95)',
     },
     bottomBar: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 24,
-        padding: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 10,
+        backgroundColor: colors.white,
+        borderRadius: 18,
+        padding: 8,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.15,
+        shadowRadius: 14,
+        elevation: 8,
+        borderWidth: 1,
+        borderColor: colors.violetLight,
     },
-    bottomLeft: {
+    bottomBarLeft: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
+        marginRight: 8,
     },
-    currentStageCircle: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: '#4F46E5', // Primary blue
+    stageLevelBadge: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        backgroundColor: colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 12,
+        marginRight: 8,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.25,
+        shadowRadius: 5,
+        elevation: 3,
     },
-    currentStageLevel: {
-        color: '#FFFFFF',
-        fontSize: 20,
+    stageLevelText: {
+        color: colors.white,
+        fontSize: 9,
         fontFamily: fonts.bold,
+        fontWeight: '900',
     },
-    currentStageTextContainer: {
+    stageDetails: {
         flex: 1,
     },
-    currentStageLabel: {
-        color: '#4F46E5',
-        fontSize: 12,
-        fontFamily: fonts.bold,
-        marginBottom: 2,
+    activeStageTag: {
+        backgroundColor: colors.primaryLight,
+        paddingHorizontal: 5,
+        paddingVertical: 1,
+        borderRadius: 4,
+        alignSelf: 'flex-start',
+        marginBottom: 1,
     },
-    currentStageTitle: {
-        color: '#111827',
-        fontSize: 14,
+    activeStageTagText: {
+        color: colors.primary,
+        fontSize: 7,
         fontFamily: fonts.bold,
+        fontWeight: '900',
+        letterSpacing: 0.3,
     },
-    playButton: {
-        backgroundColor: '#4F46E5',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderRadius: 20,
-        marginLeft: 10,
+    stageName: {
+        color: colors.darkBlue,
+        fontSize: 11,
+        fontFamily: fonts.bold,
+        fontWeight: '800',
+    },
+    playLevelButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.primary,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 14,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 5,
+        gap: 4,
+        flexShrink: 0,
     },
     playButtonText: {
-        color: '#FFFFFF',
-        fontSize: 13,
+        color: colors.white,
+        fontSize: 10,
         fontFamily: fonts.bold,
+        fontWeight: '900',
+    },
+    energyTag: {
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: 4,
+        paddingVertical: 1.5,
+        borderRadius: 5,
+    },
+    energyText: {
+        color: colors.yellowLight,
+        fontSize: 8,
+        fontFamily: fonts.bold,
+        fontWeight: '900',
     },
 });
+
+
+

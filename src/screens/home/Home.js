@@ -19,9 +19,12 @@ export default function Home({ navigation }) {
     const insets = useSafeAreaInsets();
 
     const handlePlayGame = (game) => {
-        if (game.title === 'Word Jumble') {
-            navigation.navigate('SelectLevel');
-        }
+        navigation.navigate('SelectLevel', {
+            game: game.title,
+            title: game.title,
+            difficulty: game.difficulty,
+            color: game.color,
+        });
     };
 
     return (
