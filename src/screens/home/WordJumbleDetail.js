@@ -5,7 +5,6 @@ import {
     ScrollView,
     TouchableOpacity,
     Image,
-    Alert,
     Share,
 } from 'react-native';
 import Header from '../../components/CommonHeader';
@@ -37,9 +36,7 @@ export default function WordJumbleDetail({ navigation, route }) {
     };
 
     const handleStartGame = () => {
-        Alert.alert('Start Game', `${gameTitle} - Level ${levelNumber} round starting now!`, [
-            { text: 'Let\'s Play', onPress: () => console.log('Game Started') }
-        ]);
+        navigation.navigate('WordPuzzleScreen', { level: levelNumber, game: gameTitle });
     };
 
     const handleFavorite = (isFav) => {

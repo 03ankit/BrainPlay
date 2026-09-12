@@ -5,7 +5,8 @@ import Settings from '../screens/home/Settings';
 import WeeklyStreakDetail from '../screens/home/WeeklyStreakDetail';
 import WordJumbleDetail from '../screens/home/WordJumbleDetail';
 import SelectLevel from '../screens/home/SelectLevel';
-
+import WordPuzzleScreen from '../screens/game/WordPuzzleScreen';
+import LevelCompleteScreen from '../screens/game/LevelCompleteScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -23,6 +24,8 @@ export default function MainNavigation() {
             <Stack.Screen name="WeeklyStreakDetail" component={WeeklyStreakDetail} />
             <Stack.Screen name="WordJumbleDetail" component={WordJumbleDetail} />
             <Stack.Screen name="SelectLevel" component={SelectLevel} />
+            <Stack.Screen name="WordPuzzleScreen" component={WordPuzzleScreen} />
+            <Stack.Screen name="LevelCompleteScreen" component={LevelCompleteScreen} />
         </Stack.Navigator>
     );
 }

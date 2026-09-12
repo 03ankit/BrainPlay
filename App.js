@@ -1,15 +1,29 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import SplashOverlay from './src/components/SplashOverlay';
 import AuthNavigation from './src/navigation/AuthNavigation';
 import MainNavigation from './src/navigation/MainNavigation';
 import { AuthProvider, AuthContext } from './src/context/AuthContext';
+import { initDatabase } from './src/database/database';
+import { seedDatabase } from './src/database/seed';
 
 function RootNavigator() {
   const { userToken, isLoading } = useContext(AuthContext);
   const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const setupDb = async () => {
+      try {
+        await initDatabase();
+        await seedDatabase();
+      } catch (err) {
+        console.error('Database setup error on App launch:', err);
+      }
+    };
+    setupDb();
+  }, []);
 
   return (
     <View style={styles.container}>

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
     View,
     Text,
@@ -7,80 +7,191 @@ import {
     ScrollView,
     Dimensions,
     Image,
+    Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import colors from '../../constants/colour';
 import fonts from '../../constants/fonts';
 import images from '../../constants/images';
 import { MapLevelNode, BossSummitCard } from '../../components/game/LevelCard';
+import progressRepository from '../../database/repositories/progressRepository';
 
 const { width } = Dimensions.get('window');
 
 /**
- * Node placement on X-axis across the winding serpentine road (0 to 1 ratio)
- * Nodes are ordered from top to bottom (Level 20 -> Level 1)
+ * 20 Level Nodes along serpentine path (ordered from top level 20 to bottom level 1)
  */
-const mapNodesData = [
-    { level: 19, xRatio: 0.78, status: 'locked', world: 4 },
-    { level: 18, xRatio: 0.50, status: 'locked', world: 3 },
-    { level: 17, xRatio: 0.80, status: 'locked', world: 3 },
-    { level: 16, xRatio: 0.22, status: 'locked', world: 3 },
-    { level: 15, xRatio: 0.48, status: 'locked', world: 3 },
-    { level: 14, xRatio: 0.20, status: 'locked', world: 3 },
-    { level: 13, xRatio: 0.32, status: 'locked', world: 3 },
-    { level: 12, xRatio: 0.50, status: 'active', world: 2, title: 'Prefixes & Roots' },
-    { level: 11, xRatio: 0.80, status: 'completed', stars: 3, world: 2 },
-    { level: 10, xRatio: 0.22, status: 'completed', stars: 3, world: 2 },
-    { level: 9, xRatio: 0.58, status: 'completed', stars: 3, world: 2 },
-    { level: 8, xRatio: 0.24, status: 'completed', stars: 2, world: 2 },
-    { level: 7, xRatio: 0.80, status: 'completed', stars: 3, world: 2 },
-    { level: 6, xRatio: 0.50, status: 'completed', stars: 3, world: 2 },
-    { level: 5, xRatio: 0.22, status: 'completed', stars: 3, world: 1 },
-    { level: 4, xRatio: 0.78, status: 'completed', stars: 3, world: 1 },
-    { level: 3, xRatio: 0.44, status: 'completed', stars: 3, world: 1 },
-    { level: 2, xRatio: 0.78, status: 'completed', stars: 3, world: 1 },
-    { level: 1, xRatio: 0.50, status: 'completed', stars: 3, world: 1, sideAnnotation: { type: 'start', text: 'STARTING POINT' } },
+const mapNodesConfig = [
+    { level: 20, xRatio: 0.50, world: 4, title: 'Royal Summit' },
+    { level: 19, xRatio: 0.78, world: 4, title: 'Victory Pass' },
+    { level: 18, xRatio: 0.50, world: 3, title: 'Crystal Cavern' },
+    { level: 17, xRatio: 0.80, world: 3, title: 'Triumph Ridge' },
+    { level: 16, xRatio: 0.22, world: 3, title: 'Mystery Peak' },
+    { level: 15, xRatio: 0.48, world: 3, title: 'Champion Trail' },
+    { level: 14, xRatio: 0.20, world: 3, title: 'Journey Way' },
+    { level: 13, xRatio: 0.32, world: 3, title: 'Wisdom Path' },
+    { level: 12, xRatio: 0.50, world: 2, title: 'Prefixes & Roots' },
+    { level: 11, xRatio: 0.80, world: 2, title: 'Action Words' },
+    { level: 10, xRatio: 0.22, world: 2, title: 'Flower Field' },
+    { level: 9,  xRatio: 0.58, world: 2, title: 'Wonder Land' },
+    { level: 8,  xRatio: 0.24, world: 2, title: 'Player Realm' },
+    { level: 7,  xRatio: 0.80, world: 2, title: 'Puzzle Garden' },
+    { level: 6,  xRatio: 0.50, world: 2, title: 'Smart Grove' },
+    { level: 5,  xRatio: 0.22, world: 1, title: 'Brain Storm' },
+    { level: 4,  xRatio: 0.78, world: 1, title: 'House Hill' },
+    { level: 3,  xRatio: 0.44, world: 1, title: 'Star Valley' },
+    { level: 2,  xRatio: 0.78, world: 1, title: 'Game Park' },
+    { level: 1,  xRatio: 0.50, world: 1, title: 'Starting Point', sideAnnotation: { type: 'start', text: 'STARTING POINT' } },
 ];
 
 export default function SelectLevel({ navigation, route }) {
     const insets = useSafeAreaInsets();
     const scrollViewRef = useRef(null);
 
-    // Get game info from navigation params or fallback to default
+    // Navigation parameters
     const gameParam = route?.params?.game;
-    const gameTitle = route?.params?.title || (typeof gameParam === 'string' ? gameParam : gameParam?.title) || 'Word Odyssey';
+    const gameTitle = route?.params?.title || (typeof gameParam === 'string' ? gameParam : gameParam?.title) || 'Word Jumble';
 
-    // Currently selected level to show and play in bottom bar
-    const [selectedLevel, setSelectedLevel] = useState(12);
+    // State for SQLite player progress and selected level
+    const [playerProgress, setPlayerProgress] = useState([]);
+    const [selectedLevel, setSelectedLevel] = useState(Number(route?.params?.level) || 1);
+
+    // Fetch player progress from SQLite whenever screen comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            const loadProgress = async () => {
+                try {
+                    const data = await progressRepository.getPlayerProgress('local_player', '1');
+                    setPlayerProgress(data || []);
+
+                    // Calculate highest completed level sequentially
+                    const completedSet = new Set(
+                        (data || [])
+                            .filter((p) => Number(p.is_completed) === 1)
+                            .map((p) => Number(p.level_number))
+                    );
+
+                    let highestConsecutive = 0;
+                    while (completedSet.has(highestConsecutive + 1)) {
+                        highestConsecutive += 1;
+                    }
+
+                    const activeLvl = Math.min(highestConsecutive + 1, 20);
+
+                    // Prefer route param level if specified and unlocked, otherwise active level
+                    const paramLvl = Number(route?.params?.level);
+                    if (paramLvl && paramLvl <= activeLvl) {
+                        setSelectedLevel(paramLvl);
+                    } else {
+                        setSelectedLevel(activeLvl);
+                    }
+                } catch (err) {
+                    console.error('Error fetching player progress in SelectLevel:', err);
+                }
+            };
+
+            loadProgress();
+        }, [route?.params?.level])
+    );
+
+    // Compute stats from playerProgress
+    const completedSet = new Set(
+        playerProgress
+            .filter((p) => Number(p.is_completed) === 1)
+            .map((p) => Number(p.level_number))
+    );
+
+    let highestCompletedLevel = 0;
+    while (completedSet.has(highestCompletedLevel + 1)) {
+        highestCompletedLevel += 1;
+    }
+
+    const activeLevelNumber = Math.min(highestCompletedLevel + 1, 20);
+
+    let totalEarnedStars = 0;
+    playerProgress.forEach((item) => {
+        if (Number(item.is_completed) === 1 && Number(item.level_number) <= highestCompletedLevel) {
+            totalEarnedStars += Number(item.stars) || 0;
+        }
+    });
+
+    // Map node items with exact dynamic status & star rating
+    const mapNodesData = mapNodesConfig.map((item) => {
+        const prog = playerProgress.find((p) => Number(p.level_number) === item.level);
+        let status = 'locked';
+        let stars = 0;
+
+        if (item.level <= highestCompletedLevel && prog && Number(prog.is_completed) === 1) {
+            status = 'completed';
+            stars = prog.stars !== undefined && prog.stars !== null ? Number(prog.stars) : 0;
+        } else if (item.level === activeLevelNumber) {
+            status = 'active';
+            stars = 0;
+        }
+
+        return {
+            ...item,
+            status,
+            stars,
+        };
+    });
+
+    const selectedNodeInfo = mapNodesData.find((n) => n.level === selectedLevel) || {
+        level: selectedLevel,
+        title: `Level ${selectedLevel} Challenge`,
+    };
 
     const handleBack = () => {
         if (navigation && navigation.canGoBack()) {
             navigation.goBack();
+        } else {
+            navigation.navigate('BottomNavigation', { screen: 'Games' });
         }
     };
 
-    // Selecting level on node tap
+    // Tapping a level node
     const handleNodePress = (level) => {
-        if (level <= 12) {
+        const node = mapNodesData.find((n) => n.level === level);
+        if (node && node.status !== 'locked') {
             setSelectedLevel(level);
+        } else {
+            Alert.alert(
+                '🔒 Level Locked',
+                `Complete Level ${level - 1} first to unlock Level ${level}!`,
+                [{ text: 'OK' }]
+            );
         }
     };
 
-    // Play the selected level
+    // Play selected level button
     const handlePlaySelectedLevel = () => {
-        navigation.navigate('WordJumbleDetail', { level: selectedLevel, game: gameTitle });
+        const targetNode = mapNodesData.find((n) => n.level === selectedLevel);
+        if (targetNode && targetNode.status === 'locked') {
+            Alert.alert(
+                '🔒 Level Locked',
+                `Complete Level ${selectedLevel - 1} first to unlock Level ${selectedLevel}!`,
+                [{ text: 'OK' }]
+            );
+            return;
+        }
+        navigation.navigate('WordPuzzleScreen', { level: selectedLevel, game: gameTitle });
     };
 
     const handlePlayBoss = () => {
-        // Direct action if boss is unlocked, otherwise silently ignore
+        const bossNode = mapNodesData.find((n) => n.level === 20);
+        if (bossNode && bossNode.status !== 'locked') {
+            setSelectedLevel(20);
+            navigation.navigate('WordPuzzleScreen', { level: 20, game: gameTitle });
+        } else {
+            Alert.alert('🔒 Summit Locked', 'Complete previous levels to unlock the Royal Boss Summit!');
+        }
     };
 
-    // Calculate layout positions for continuous Bézier S-curves connecting each node
+    // Layout calculation for perfectly aligned Bézier S-curves & Node placement
     const BOSS_CARD_HEIGHT = 180;
-
-    // Compute exact center (x, y) coordinates for all items in the list
     let currentY = BOSS_CARD_HEIGHT + 10;
-    const itemPositions = mapNodesData.map(item => {
+    const itemPositions = mapNodesData.map((item) => {
         const rowHeight = item.status === 'active' ? 104 : 80;
         const centerX = (width - 40) * item.xRatio + 20;
         const centerY = currentY + (item.status === 'active' ? 52 : 38);
@@ -101,33 +212,44 @@ export default function SelectLevel({ navigation, route }) {
 
     const totalCanvasHeight = currentY + 120;
 
+    // Auto-scroll to active level on mount
+    useEffect(() => {
+        if (scrollViewRef.current && itemPositions.length > 0) {
+            const activePos = itemPositions.find((p) => p.level === activeLevelNumber);
+            if (activePos) {
+                const targetY = Math.max(0, activePos.y - 280);
+                setTimeout(() => {
+                    scrollViewRef.current?.scrollTo({ y: targetY, animated: true });
+                }, 350);
+            }
+        }
+    }, [activeLevelNumber, itemPositions]);
+
     // Generate smooth Bézier S-curve connecting path segments
     const renderedPaths = [];
-    const nodeOnlyPositions = itemPositions.filter(p => p.type === 'node');
+    const nodeOnlyPositions = itemPositions.filter((p) => p.type === 'node');
 
     for (let i = 0; i < nodeOnlyPositions.length - 1; i++) {
         const nodeA = nodeOnlyPositions[i];
         const nodeB = nodeOnlyPositions[i + 1];
 
-        // Path color based on zone
         let pathColor = colors.world1.dash;
         let isDashed = false;
 
         if (nodeA.world === 2 && nodeB.world === 2) {
             pathColor = colors.world2.dash;
-        } else if (nodeA.level === 13 || nodeA.level === 12 || nodeB.level === 12) {
+        } else if (nodeA.status === 'active' || nodeB.status === 'active') {
             pathColor = colors.activeNode.bg;
-        } else if (nodeA.world === 3 || nodeB.world === 3) {
+        } else if (nodeA.status === 'locked' || nodeB.status === 'locked') {
             pathColor = colors.lockedNode.dash;
             isDashed = true;
-        } else if (nodeA.world === 4 || nodeB.world === 4) {
+        } else if (nodeA.world === 3 || nodeB.world === 3) {
             pathColor = colors.world3.primary;
         }
 
         const deltaX = nodeB.x - nodeA.x;
         const deltaY = nodeB.y - nodeA.y;
 
-        // Cubic Bézier control points for natural S-curve road
         const isVertical = Math.abs(deltaX) < 30;
         const wobble = isVertical ? (i % 2 === 0 ? 36 : -36) : 0;
 
@@ -136,11 +258,10 @@ export default function SelectLevel({ navigation, route }) {
         const c2X = nodeB.x - deltaX * 0.15 - wobble;
         const c2Y = nodeA.y + deltaY * 0.35;
 
-        // Sample points along the curve
         const steps = 14;
         const curveDots = [];
         for (let s = 1; s < steps; s++) {
-            if (isDashed && s % 2 === 1) continue; // Alternate for dashed road look
+            if (isDashed && s % 2 === 1) continue;
             const t = s / steps;
             const oneMinusT = 1 - t;
             const dotX =
@@ -166,7 +287,6 @@ export default function SelectLevel({ navigation, route }) {
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
-
             {/* Top Game Header Bar */}
             <View style={styles.topHeader}>
                 <View style={styles.topHeaderLeft}>
@@ -185,14 +305,14 @@ export default function SelectLevel({ navigation, route }) {
                 </View>
             </View>
 
-            {/* Clean Subheader: Active Level and Total Stars Only */}
+            {/* Subheader: Active Level and Total Stars */}
             <View style={styles.infoSubHeader}>
                 <View style={styles.activeLevelIndicator}>
                     <View style={styles.activeDot} />
-                    <Text style={styles.activeLevelIndicatorText} numberOfLines={1}>Active: Level {selectedLevel}</Text>
+                    <Text style={styles.activeLevelIndicatorText} numberOfLines={1}>Active: Level {activeLevelNumber}</Text>
                 </View>
                 <View style={styles.totalStarsPill}>
-                    <Text style={styles.totalStarsText}>⭐ 34/60 Stars</Text>
+                    <Text style={styles.totalStarsText}>⭐ {totalEarnedStars}/60 Stars</Text>
                 </View>
             </View>
 
@@ -202,10 +322,10 @@ export default function SelectLevel({ navigation, route }) {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[styles.mapScrollContent, { minHeight: totalCanvasHeight }]}
             >
-                {/* Connecting Winding Road Paths (rendered beneath nodes) */}
+                {/* Connecting Winding Road Paths */}
                 <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-                    {renderedPaths.map(p =>
-                        p.dots.map(d => (
+                    {renderedPaths.map((p) =>
+                        p.dots.map((d) => (
                             <View
                                 key={d.key}
                                 style={[
@@ -227,8 +347,8 @@ export default function SelectLevel({ navigation, route }) {
                 {/* Map Nodes */}
                 <View style={styles.pathNodesContainer}>
                     {mapNodesData.map((item) => {
-                        // Calculate horizontal center offset
-                        const leftOffset = (width - 40) * item.xRatio - 25;
+                        const nodeWidth = item.status === 'active' ? 76 : 50;
+                        const leftOffset = (width - 40) * item.xRatio + 20 - nodeWidth / 2;
 
                         return (
                             <View
@@ -242,7 +362,7 @@ export default function SelectLevel({ navigation, route }) {
                                     <MapLevelNode
                                         level={item.level}
                                         status={item.status}
-                                        stars={item.stars || 3}
+                                        stars={item.stars}
                                         title={item.title}
                                         world={item.world}
                                         sideAnnotation={item.sideAnnotation}
@@ -255,14 +375,14 @@ export default function SelectLevel({ navigation, route }) {
                     })}
                 </View>
 
-                {/* Bottom Padding for floating footer */}
+                {/* Bottom Padding */}
                 <View style={{ height: 110 }} />
             </ScrollView>
 
             {/* Sticky Bottom Action Bar */}
             <View style={[styles.bottomBarWrapper, { paddingBottom: Math.max(insets.bottom, 12) }]}>
                 <View style={styles.bottomBar}>
-                    {/* Selected Level Indicator */}
+                    {/* Selected Level Info */}
                     <View style={styles.bottomBarLeft}>
                         <View style={styles.stageLevelBadge}>
                             <Text style={styles.stageLevelText}>LVL {selectedLevel}</Text>
@@ -272,12 +392,12 @@ export default function SelectLevel({ navigation, route }) {
                                 <Text style={styles.activeStageTagText} numberOfLines={1}>SELECTED LEVEL</Text>
                             </View>
                             <Text style={styles.stageName} numberOfLines={1}>
-                                {selectedLevel === 12 ? 'Prefixes & Roots' : `Level ${selectedLevel} Challenge`}
+                                {selectedNodeInfo.title || `Level ${selectedLevel} Challenge`}
                             </Text>
                         </View>
                     </View>
 
-                    {/* Play Button without -1 */}
+                    {/* Play Level Action Button */}
                     <TouchableOpacity
                         style={styles.playLevelButton}
                         activeOpacity={0.88}
@@ -287,7 +407,6 @@ export default function SelectLevel({ navigation, route }) {
                     </TouchableOpacity>
                 </View>
             </View>
-
         </View>
     );
 }
@@ -362,31 +481,6 @@ const styles = StyleSheet.create({
         color: colors.gray,
         marginTop: 2,
     },
-    topStatsRow: {
-        flexDirection: 'row',
-        gap: 4,
-        flexShrink: 0,
-    },
-    statPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: colors.background,
-        borderWidth: 1,
-        borderColor: colors.avatarBg,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-        gap: 4,
-    },
-    statIcon: {
-        fontSize: 11,
-    },
-    statText: {
-        fontSize: 11,
-        fontFamily: fonts.bold,
-        fontWeight: '800',
-        color: colors.darkBlue,
-    },
     infoSubHeader: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -439,10 +533,6 @@ const styles = StyleSheet.create({
     mapScrollContent: {
         paddingTop: 8,
         position: 'relative',
-    },
-    decorIcon: {
-        position: 'absolute',
-        zIndex: 1,
     },
     pathNodesContainer: {
         position: 'relative',
@@ -560,19 +650,4 @@ const styles = StyleSheet.create({
         fontFamily: fonts.bold,
         fontWeight: '900',
     },
-    energyTag: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        paddingHorizontal: 4,
-        paddingVertical: 1.5,
-        borderRadius: 5,
-    },
-    energyText: {
-        color: colors.yellowLight,
-        fontSize: 8,
-        fontFamily: fonts.bold,
-        fontWeight: '900',
-    },
 });
-
-
-

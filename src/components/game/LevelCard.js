@@ -96,9 +96,9 @@ export const MapLevelNode = ({
         <View style={styles.nodeWrapper}>
             {/* Stars above */}
             <View style={styles.starsRow}>
-                <Text style={stars >= 1 ? styles.starGold : styles.starDim}>⭐</Text>
-                <Text style={stars >= 2 ? styles.starGold : styles.starDim}>⭐</Text>
-                <Text style={stars >= 3 ? styles.starGold : styles.starDim}>⭐</Text>
+                <Text style={[styles.starIcon, stars < 1 && styles.starDimmed]}>⭐</Text>
+                <Text style={[styles.starIcon, stars < 2 && styles.starDimmed]}>⭐</Text>
+                <Text style={[styles.starIcon, stars < 3 && styles.starDimmed]}>⭐</Text>
             </View>
 
             {/* Circular Button */}
@@ -253,13 +253,11 @@ const styles = StyleSheet.create({
         gap: 1,
         marginBottom: 2,
     },
-    starGold: {
+    starIcon: {
         fontSize: 9,
-        color: colors.yellow,
     },
-    starDim: {
-        fontSize: 9,
-        color: colors.grayLight,
+    starDimmed: {
+        opacity: 0.25,
     },
     completedCircle: {
         width: 50,
