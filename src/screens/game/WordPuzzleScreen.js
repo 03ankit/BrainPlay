@@ -6,7 +6,6 @@ import {
     Alert,
     Text,
     TouchableOpacity,
-    Image,
     BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,13 +17,15 @@ import AnswerBoxes from '../../components/game/AnswerBoxes';
 import GameClue from '../../components/game/GameClue';
 import GameButtons from '../../components/game/GameButtons';
 import ExitGameModal from '../../components/game/ExitGameModal';
+import TimeUpModal from '../../components/game/TimeUpModal';
+import IncorrectModal from '../../components/game/IncorrectModal';
 import questionRepository from '../../database/repositories/questionRepository';
 import gameHistoryRepository from '../../database/repositories/gameHistoryRepository';
 import progressRepository from '../../database/repositories/progressRepository';
-import images from '../../constants/images';
 import fonts from '../../constants/fonts';
 import colors from '../../constants/colour';
 import WORD_PUZZLE_QUESTIONS from '../../constants/wordPuzzleQuestions';
+
 
 const FALLBACK_QUESTIONS = WORD_PUZZLE_QUESTIONS;
 
@@ -72,9 +73,12 @@ export default function WordPuzzleScreen({ navigation, route }) {
     const [isCompleted, setIsCompleted] = useState(false);
     const [questionStartTime, setQuestionStartTime] = useState(Date.now());
 
-    // Exit Modal state
+    // Exit, Time Up & Incorrect Modal state
     const [showExitModal, setShowExitModal] = useState(false);
     const [pendingTarget, setPendingTarget] = useState(null);
+    const [showTimeUpModal, setShowTimeUpModal] = useState(false);
+    const [showIncorrectModal, setShowIncorrectModal] = useState(false);
+    const [timerKey, setTimerKey] = useState(0);
 
     // 1. Fetch single question for the selected level
     useEffect(() => {
@@ -163,11 +167,18 @@ export default function WordPuzzleScreen({ navigation, route }) {
     const handleConfirmExit = () => {
         setShowExitModal(false);
         if (pendingTarget) {
-            navigation.navigate(pendingTarget.routeName || 'BottomNavigation', pendingTarget.params);
-        } else if (navigation && navigation.canGoBack()) {
-            navigation.goBack();
+            navigation.reset({
+                index: 0,
+                routes: [{ name: pendingTarget.routeName || 'BottomNavigation', params: pendingTarget.params }],
+            });
         } else {
-            navigation.navigate('SelectLevel', { level: playerLevel, game: 'Word Jumble' });
+            navigation.reset({
+                index: 1,
+                routes: [
+                    { name: 'BottomNavigation' },
+                    { name: 'SelectLevel', params: { level: playerLevel, game: 'Word Jumble' } },
+                ],
+            });
         }
     };
 
@@ -207,24 +218,51 @@ export default function WordPuzzleScreen({ navigation, route }) {
     };
 
     // Timer expires callback
-    const handleTimeUp = () => {
+    const handleTimeUp = useCallback(() => {
         if (isCompleted || !isFocused) return;
+        setShowTimeUpModal(true);
+    }, [isCompleted, isFocused]);
 
-        Alert.alert(
-            '⏰ Time Expired!',
-            `Time ran out for Level ${playerLevel}.`,
-            [
-                {
-                    text: 'Try Again 🔄',
-                    onPress: () => setupQuestion(currentQuestion),
-                },
-                {
-                    text: 'Level Map 🗺️',
-                    onPress: () => navigation.navigate('SelectLevel', { level: playerLevel, game: 'Word Jumble' }),
-                },
-            ]
-        );
-    };
+    // Retry callback when time expires
+    const handleRetry = useCallback(() => {
+        setShowTimeUpModal(false);
+        setTimerKey((prev) => prev + 1);
+        if (currentQuestion) {
+            setupQuestion(currentQuestion);
+        }
+    }, [setupQuestion, currentQuestion]);
+
+    // Level map / exit callback from time up modal
+    const handleTimeUpExit = useCallback(() => {
+        setShowTimeUpModal(false);
+        navigation.reset({
+            index: 1,
+            routes: [
+                { name: 'BottomNavigation' },
+                { name: 'SelectLevel', params: { level: playerLevel, game: 'Word Jumble' } },
+            ],
+        });
+    }, [navigation, playerLevel]);
+
+    // Try again callback from incorrect answer modal
+    const handleTryAgain = useCallback(() => {
+        setShowIncorrectModal(false);
+        if (currentQuestion) {
+            setupQuestion(currentQuestion);
+        }
+    }, [setupQuestion, currentQuestion]);
+
+    // Level map callback from incorrect answer modal
+    const handleIncorrectExit = useCallback(() => {
+        setShowIncorrectModal(false);
+        navigation.reset({
+            index: 1,
+            routes: [
+                { name: 'BottomNavigation' },
+                { name: 'SelectLevel', params: { level: playerLevel, game: 'Word Jumble' } },
+            ],
+        });
+    }, [navigation, playerLevel]);
 
     // Hint button callback
     const handleHint = () => {
@@ -309,11 +347,7 @@ export default function WordPuzzleScreen({ navigation, route }) {
                 game: 'Word Jumble',
             });
         } else {
-            Alert.alert(
-                '❌ Incorrect Answer',
-                'That is not the correct word. Try unscrambling again!',
-                [{ text: 'Try Again', onPress: () => setupQuestion(currentQuestion) }]
-            );
+            setShowIncorrectModal(true);
         }
     };
 
@@ -329,12 +363,13 @@ export default function WordPuzzleScreen({ navigation, route }) {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {/* Timer (Paused if screen unmounts, loses focus, or question is completed) */}
+                {/* Timer (Paused if screen unmounts, loses focus, question is completed, or modal is open) */}
                 <GameTimer
                     initialSeconds={currentQuestion?.time || currentQuestion?.time_limit_seconds || 15}
                     onTimeUp={handleTimeUp}
                     questionId={currentQuestion?.id || playerLevel}
-                    isPaused={!isFocused || isCompleted}
+                    resetKey={timerKey}
+                    isPaused={!isFocused || isCompleted || showTimeUpModal || showIncorrectModal}
                 />
 
                 {/* Available Letter Tiles */}
@@ -361,46 +396,27 @@ export default function WordPuzzleScreen({ navigation, route }) {
                 />
             </ScrollView>
 
-            {/* Embedded Bottom Navigation */}
-            <View style={[styles.bottomNavContainer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => handleRequestExit({ routeName: 'BottomNavigation', params: { screen: 'Home' } })}
-                >
-                    <Image source={images.home} style={styles.navIcon} resizeMode="contain" />
-                    <Text style={styles.navText}>Home</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.navItem, styles.navItemActive]}
-                    onPress={() => handleRequestExit({ routeName: 'BottomNavigation', params: { screen: 'Games' } })}
-                >
-                    <Image source={images.game} style={[styles.navIcon, styles.navIconActive]} resizeMode="contain" />
-                    <Text style={styles.navTextActive}>Games</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => handleRequestExit({ routeName: 'BottomNavigation', params: { screen: 'Achievements' } })}
-                >
-                    <Image source={images.champions} style={styles.navIcon} resizeMode="contain" />
-                    <Text style={styles.navText}>Achievements</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => handleRequestExit({ routeName: 'BottomNavigation', params: { screen: 'Profile' } })}
-                >
-                    <Image source={images.person} style={styles.navIcon} resizeMode="contain" />
-                    <Text style={styles.navText}>Profile</Text>
-                </TouchableOpacity>
-            </View>
-
             {/* Exit Confirmation Modal */}
             <ExitGameModal
                 visible={showExitModal}
                 onConfirmExit={handleConfirmExit}
                 onCancel={() => setShowExitModal(false)}
+            />
+
+            {/* Time Up Modal */}
+            <TimeUpModal
+                visible={showTimeUpModal}
+                level={playerLevel}
+                onRetry={handleRetry}
+                onLevelMap={handleTimeUpExit}
+            />
+
+            {/* Incorrect Answer Modal */}
+            <IncorrectModal
+                visible={showIncorrectModal}
+                level={playerLevel}
+                onTryAgain={handleTryAgain}
+                onLevelMap={handleIncorrectExit}
             />
         </View>
     );
@@ -412,46 +428,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background,
     },
     scrollContent: {
-        paddingBottom: 100,
-    },
-    bottomNavContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        backgroundColor: colors.white,
-        paddingTop: 10,
-        borderTopWidth: 1,
-        borderTopColor: colors.grayLighter,
-    },
-    navItem: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 16,
-        minWidth: 80,
-    },
-    navItemActive: {
-        backgroundColor: colors.primary,
-    },
-    navIcon: {
-        width: 22,
-        height: 22,
-        tintColor: colors.gray,
-        marginBottom: 4,
-    },
-    navIconActive: {
-        tintColor: colors.white,
-    },
-    navText: {
-        fontSize: 12,
-        fontFamily: fonts.medium,
-        color: colors.gray,
-    },
-    navTextActive: {
-        fontSize: 12,
-        fontFamily: fonts.bold,
-        fontWeight: '800',
-        color: colors.white,
+        paddingBottom: 40,
     },
 });
+

@@ -27,17 +27,24 @@ export default function LevelCompleteScreen({ navigation, route }) {
     // Continue to Next Level
     const handleContinue = () => {
         const nextLevel = levelNumber + 1;
-        navigation.navigate('WordPuzzleScreen', {
-            level: nextLevel,
-            game: gameTitle,
+        navigation.reset({
+            index: 2,
+            routes: [
+                { name: 'BottomNavigation' },
+                { name: 'SelectLevel', params: { level: nextLevel, game: gameTitle } },
+                { name: 'WordPuzzleScreen', params: { level: nextLevel, game: gameTitle } },
+            ],
         });
     };
 
     // Navigate to Level Map / Home
     const handleHome = () => {
-        navigation.navigate('SelectLevel', {
-            level: levelNumber + 1,
-            game: gameTitle,
+        navigation.reset({
+            index: 1,
+            routes: [
+                { name: 'BottomNavigation' },
+                { name: 'SelectLevel', params: { level: levelNumber + 1, game: gameTitle } },
+            ],
         });
     };
 
@@ -70,17 +77,20 @@ export default function LevelCompleteScreen({ navigation, route }) {
 
                     {/* Earned Stars Rating */}
                     <View style={styles.starsRow}>
-                        {[1, 2, 3].map((starNum) => (
-                            <Text
-                                key={`star_${starNum}`}
-                                style={[
-                                    styles.starIcon,
-                                    starNum > stars && styles.starDimmed,
-                                ]}
-                            >
-                                ⭐
-                            </Text>
-                        ))}
+                        {[1, 2, 3].map((starNum) => {
+                            const isEarned = starNum <= stars;
+                            return (
+                                <Image
+                                    key={`star_${starNum}`}
+                                    source={isEarned ? images.starfilled : images.star}
+                                    style={[
+                                        styles.starIconImage,
+                                        !isEarned && styles.starDimmed,
+                                    ]}
+                                    resizeMode="contain"
+                                />
+                            );
+                        })}
                     </View>
 
                     {/* Time Taken Stat Card */}
@@ -173,11 +183,12 @@ const styles = StyleSheet.create({
         gap: 8,
         marginBottom: 20,
     },
-    starIcon: {
-        fontSize: 28,
+    starIconImage: {
+        width: 38,
+        height: 38,
     },
     starDimmed: {
-        opacity: 0.25,
+        opacity: 0.35,
     },
     statCard: {
         width: '100%',

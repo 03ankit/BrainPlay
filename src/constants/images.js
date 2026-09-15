@@ -17,12 +17,14 @@ export const images = {
     exit: require('../assets/image/exit.png'),
     next: require('../assets/image/next.png'),
     star: require('../assets/image/star.png'),
+    starfilled: require('../assets/image/starfill.png'),
     music: require('../assets/image/music-on.png'),
     volume: require('../assets/image/volume.png'),
     vibration: require('../assets/image/vibrate-mode.png'),
     lock: require('../assets/image/lock.png'),
     word_jumble_bg: require('../assets/image/word_jumble_bg.jpg'),
     trophy: require('../assets/image/trophy.png'),
+    reload: require('../assets/image/reload.png'),
 };
 
 export default images;

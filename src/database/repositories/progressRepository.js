@@ -20,7 +20,7 @@ export const savePlayerProgress = async ({
             `INSERT INTO player_progress (id, profile_id, game_id, level_number, stars, high_score, is_completed)
              VALUES (?, ?, ?, ?, ?, ?, ?)
              ON CONFLICT(id) DO UPDATE SET
-             stars = MAX(COALESCE(stars, 0), excluded.stars),
+             stars = excluded.stars,
              high_score = MAX(COALESCE(high_score, 0), excluded.high_score),
              is_completed = 1;`,
             [id, pId, gId, lvlNum, numStars, numHighScore, isCompleted ? 1 : 0]

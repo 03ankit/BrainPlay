@@ -806,6 +806,7 @@ const OtpInputBox = forwardRef(function OtpInputBox(
         cellHeight = 56,
         locked = false,
         error = false,
+        autoFocus = true,
         onFilled,
     },
     ref
@@ -818,6 +819,7 @@ const OtpInputBox = forwardRef(function OtpInputBox(
     const [playing, setPlaying] = useState(false);
     const [reducedMotion, setReducedMotion] = useState(false);
     const [boxes, setBoxes] = useState([]);
+    const [isFocusedInput, setIsFocusedInput] = useState(false);
 
     const boxScales = useRef(
         Array.from({ length: cellCount }, () => new Animated.Value(1))
@@ -831,13 +833,45 @@ const OtpInputBox = forwardRef(function OtpInputBox(
     const mountedRef = useRef(true);
     const safetyTimerRef = useRef(null);
 
+    const triggerFocus = useCallback(() => {
+        if (inputRef.current) {
+            inputRef.current.blur();
+            setTimeout(() => {
+                if (mountedRef.current && inputRef.current) {
+                    inputRef.current.focus();
+                }
+            }, 50);
+        }
+    }, []);
+
     useEffect(() => {
         mountedRef.current = true;
+        let timer;
+        if (autoFocus && !locked && !playing) {
+            timer = setTimeout(() => {
+                if (mountedRef.current) {
+                    triggerFocus();
+                }
+            }, 150);
+        }
+
+        const keyboardDidHideSubscription = Keyboard.addListener(
+            'keyboardDidHide',
+            () => {
+                if (mountedRef.current) {
+                    setIsFocusedInput(false);
+                    inputRef.current?.blur();
+                }
+            }
+        );
+
         return () => {
             mountedRef.current = false;
+            if (timer) clearTimeout(timer);
             if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+            keyboardDidHideSubscription.remove();
         };
-    }, []);
+    }, [autoFocus, locked, playing, triggerFocus]);
 
     const resetAnimation = useCallback(() => {
         if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
@@ -980,7 +1014,11 @@ const OtpInputBox = forwardRef(function OtpInputBox(
             }
         },
         resetAnimation,
-        focus: () => inputRef.current?.focus(),
+        focus: triggerFocus,
+        blur: () => {
+            setIsFocusedInput(false);
+            inputRef.current?.blur();
+        },
         clear: () => setValue?.(''),
     }));
 
@@ -1006,33 +1044,20 @@ const OtpInputBox = forwardRef(function OtpInputBox(
                 },
             ]}
         >
-            {/* Hidden master text input */}
-            {!playing && (
-                <TextInput
-                    ref={inputRef}
-                    value={value}
-                    onChangeText={handleTextChange}
-                    maxLength={cellCount}
-                    keyboardType="number-pad"
-                    editable={!isInputLocked}
-                    style={[StyleSheet.absoluteFillObject, styles.hiddenInput]}
-                    autoFocus={false}
-                    caretHidden={true}
-                />
-            )}
-
-            {/* OTP Row */}
+            {/* Visual OTP Box Row */}
             <Pressable
                 ref={rowRef}
                 collapsable={false}
                 style={styles.row}
                 onPress={() => {
-                    if (!isInputLocked) inputRef.current?.focus();
+                    if (!isInputLocked) {
+                        triggerFocus();
+                    }
                 }}
             >
                 {Array.from({ length: cellCount }).map((_, index) => {
                     const digit = value[index] || '';
-                    const isFocused = value.length === index && !isInputLocked;
+                    const isFocused = isFocusedInput && value.length === index && !isInputLocked;
                     const isFilled = digit.length > 0;
 
                     return (
@@ -1092,6 +1117,27 @@ const OtpInputBox = forwardRef(function OtpInputBox(
                     />
                 )}
             </Pressable>
+
+            {/* Overlaid master text input for native keyboard & touch focus */}
+            {!playing && (
+                <TextInput
+                    ref={inputRef}
+                    value={value}
+                    onChangeText={handleTextChange}
+                    maxLength={cellCount}
+                    keyboardType="number-pad"
+                    textContentType="oneTimeCode"
+                    autoComplete="one-time-code"
+                    importantForAutofill="yes"
+                    editable={!isInputLocked}
+                    caretHidden={true}
+                    pointerEvents="none"
+                    selection={{ start: value.length, end: value.length }}
+                    onFocus={() => setIsFocusedInput(true)}
+                    onBlur={() => setIsFocusedInput(false)}
+                    style={[StyleSheet.absoluteFillObject, styles.hiddenInput]}
+                />
+            )}
         </View>
     );
 });
@@ -1110,9 +1156,10 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     hiddenInput: {
-        opacity: 0,
+        opacity: 0.01,
         color: 'transparent',
-        zIndex: -1,
+        backgroundColor: 'transparent',
+        zIndex: 10,
     },
     row: {
         flexDirection: 'row',

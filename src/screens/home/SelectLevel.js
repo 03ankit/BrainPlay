@@ -111,18 +111,18 @@ export default function SelectLevel({ navigation, route }) {
 
     let totalEarnedStars = 0;
     playerProgress.forEach((item) => {
-        if (Number(item.is_completed) === 1 && Number(item.level_number) <= highestCompletedLevel) {
+        if (Number(item.is_completed) === 1) {
             totalEarnedStars += Number(item.stars) || 0;
         }
     });
 
-    // Map node items with exact dynamic status & star rating
+    // Map node items with exact dynamic status & star rating from SQLite
     const mapNodesData = mapNodesConfig.map((item) => {
         const prog = playerProgress.find((p) => Number(p.level_number) === item.level);
         let status = 'locked';
         let stars = 0;
 
-        if (item.level <= highestCompletedLevel && prog && Number(prog.is_completed) === 1) {
+        if (prog && Number(prog.is_completed) === 1) {
             status = 'completed';
             stars = prog.stars !== undefined && prog.stars !== null ? Number(prog.stars) : 0;
         } else if (item.level === activeLevelNumber) {
@@ -143,11 +143,10 @@ export default function SelectLevel({ navigation, route }) {
     };
 
     const handleBack = () => {
-        if (navigation && navigation.canGoBack()) {
-            navigation.goBack();
-        } else {
-            navigation.navigate('BottomNavigation', { screen: 'Games' });
-        }
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'BottomNavigation', params: { screen: 'Games' } }],
+        });
     };
 
     // Tapping a level node

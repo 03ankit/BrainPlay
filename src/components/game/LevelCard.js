@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image } from 'react-native';
 import fonts from '../../constants/fonts';
 import colors from '../../constants/colour';
+import images from '../../constants/images';
 
 const { width } = Dimensions.get('window');
 
@@ -96,9 +97,9 @@ export const MapLevelNode = ({
         <View style={styles.nodeWrapper}>
             {/* Stars above */}
             <View style={styles.starsRow}>
-                <Text style={[styles.starIcon, stars < 1 && styles.starDimmed]}>⭐</Text>
-                <Text style={[styles.starIcon, stars < 2 && styles.starDimmed]}>⭐</Text>
-                <Text style={[styles.starIcon, stars < 3 && styles.starDimmed]}>⭐</Text>
+                <Image source={stars >= 1 ? images.starfilled : images.star} style={[styles.starIconImage, stars < 1 && styles.starDimmed]} resizeMode="contain" />
+                <Image source={stars >= 2 ? images.starfilled : images.star} style={[styles.starIconImage, stars < 2 && styles.starDimmed]} resizeMode="contain" />
+                <Image source={stars >= 3 ? images.starfilled : images.star} style={[styles.starIconImage, stars < 3 && styles.starDimmed]} resizeMode="contain" />
             </View>
 
             {/* Circular Button */}
@@ -253,11 +254,12 @@ const styles = StyleSheet.create({
         gap: 1,
         marginBottom: 2,
     },
-    starIcon: {
-        fontSize: 9,
+    starIconImage: {
+        width: 13,
+        height: 13,
     },
     starDimmed: {
-        opacity: 0.25,
+        opacity: 0.35,
     },
     completedCircle: {
         width: 50,

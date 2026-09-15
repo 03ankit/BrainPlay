@@ -24,7 +24,7 @@ export default function BottomNavigation() {
                 tabBarShowLabel: false,
                 tabBarStyle: {
                     backgroundColor: '#FFFFFF',
-                    height: 50 + insets.bottom,
+                    height: 55 + insets.bottom,
                     borderTopWidth: 0,
                     paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
                     paddingTop: 10,
@@ -61,8 +61,8 @@ export default function BottomNavigation() {
                             <Image
                                 source={iconSource}
                                 style={{
-                                    width: 24,
-                                    height: 24,
+                                    width: 20,
+                                    height: 20,
                                     tintColor: focused ? colors.white : '#94A3B8',
                                     marginBottom: 4,
                                 }}
@@ -71,7 +71,7 @@ export default function BottomNavigation() {
                             <Text style={{
                                 color: focused ? colors.white : '#94A3B8',
                                 fontFamily: fonts.medium,
-                                fontSize: 12,
+                                fontSize: 10,
                             }}>
                                 {label}
                             </Text>

@@ -44,6 +44,9 @@ export default function OtpScreen({ route, navigation }) {
         setError('');
         setCode('');
         otpInputRef.current?.resetAnimation?.();
+        setTimeout(() => {
+            otpInputRef.current?.focus?.();
+        }, 150);
     }, []);
 
     useEffect(() => {
@@ -104,11 +107,13 @@ export default function OtpScreen({ route, navigation }) {
                 setLoading(false);
                 setError('Incorrect OTP. Please try again.');
                 triggerShake();
+                otpInputRef.current?.focus?.();
             }
         } catch {
             setLoading(false);
             setError('Verification failed. Please try again.');
             triggerShake();
+            otpInputRef.current?.focus?.();
         }
     };
 
@@ -117,6 +122,7 @@ export default function OtpScreen({ route, navigation }) {
         setError('');
         setCode('');
         otpInputRef.current?.resetAnimation?.();
+        otpInputRef.current?.focus?.();
         console.log('Resend OTP to:', email);
     };
 
