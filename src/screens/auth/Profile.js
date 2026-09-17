@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useCallback } from 'react';
 import {
     Image,
     Modal,
@@ -9,7 +9,9 @@ import {
     View,
     Platform,
     PermissionsAndroid,
+    BackHandler,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import CommonHeader from '../../components/CommonHeader';
 import colors from '../../constants/colour';
 import Fonts from '../../constants/fonts';
@@ -35,6 +37,19 @@ export default function Profile({ route, navigation }) {
     // Focus state trackers for input icon tints
     const [isFullNameFocused, setIsFullNameFocused] = useState(false);
     const [isPhoneNumberFocused, setIsPhoneNumberFocused] = useState(false);
+
+    // Handle hardware back button to exit app directly instead of going back to OTP screen
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                BackHandler.exitApp();
+                return true;
+            };
+
+            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => subscription.remove();
+        }, [])
+    );
 
     const handleGetStarted = () => {
         // Log user in and save dummy token, navigation will handle switching to MainNavigation
@@ -117,7 +132,7 @@ export default function Profile({ route, navigation }) {
             {/* Header */}
             <CommonHeader
                 title="Complete Your Profile"
-                onBack={() => navigation?.goBack()}
+                showBack={false}
                 rightComponent={
                     <Text style={styles.headerRightText}>BrainPlay</Text>
                 }

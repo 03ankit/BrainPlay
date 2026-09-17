@@ -17,9 +17,11 @@ const { width } = Dimensions.get('window');
 export default function IncorrectModal({
     visible = false,
     level = 1,
+    message,
     onTryAgain,
     onLevelMap,
 }) {
+    const defaultMessage = `That is not the correct answer for Level ${level}. Try again!`;
     return (
         <Modal
             visible={visible}
@@ -30,6 +32,19 @@ export default function IncorrectModal({
         >
             <View style={styles.overlay}>
                 <View style={styles.card}>
+                    {/* Top Right Close Button */}
+                    <TouchableOpacity
+                        style={styles.closeIconButton}
+                        activeOpacity={0.7}
+                        onPress={onTryAgain}
+                    >
+                        <Image
+                            source={images.close}
+                            style={styles.closeIconImage}
+                            resizeMode="contain"
+                        />
+                    </TouchableOpacity>
+
                     {/* Incorrect Icon Badge */}
                     <View style={styles.iconCircle}>
                         <Text style={styles.iconText}>❌</Text>
@@ -38,7 +53,7 @@ export default function IncorrectModal({
                     {/* Title & Description */}
                     <Text style={styles.title}>Incorrect Answer</Text>
                     <Text style={styles.message}>
-                        That is not the correct word for Level {level}. Try unscrambling the letters again!
+                        {message || defaultMessage}
                     </Text>
 
                     {/* Action Buttons */}
@@ -87,6 +102,24 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 18,
         elevation: 10,
+        position: 'relative',
+    },
+    closeIconButton: {
+        position: 'absolute',
+        top: 16,
+        right: 16,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#F1F5F9',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10,
+    },
+    closeIconImage: {
+        width: 14,
+        height: 14,
+        tintColor: colors.grayDark,
     },
     iconCircle: {
         width: 68,

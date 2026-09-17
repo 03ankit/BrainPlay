@@ -207,10 +207,10 @@ const styles = StyleSheet.create({
         height: 170,
         borderRadius: 85,
         borderWidth: 10,
-        borderColor: '#E0E7FF',
-        borderTopColor: colors.purplePlay || '#4F46E5',
-        borderRightColor: colors.purplePlay || '#4F46E5',
-        borderLeftColor: colors.purplePlay || '#4F46E5',
+        borderColor: '#EFF6FF',
+        borderTopColor: colors.primary,
+        borderRightColor: colors.primary,
+        borderLeftColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
         transform: [{ rotate: '-45deg' }],
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
         fontSize: 48,
         fontFamily: fonts.bold || 'Poppins-Bold',
         fontWeight: 'bold',
-        color: colors.purplePlay || '#4F46E5',
+        color: colors.primary,
         lineHeight: 52,
     },
     circleDayLabel: {
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontFamily: fonts.bold || 'Poppins-Bold',
         fontWeight: 'bold',
-        color: colors.purplePlay || '#4F46E5',
+        color: colors.primary,
     },
     // Days Selector
     daysRowContainer: {
@@ -262,10 +262,10 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     dayCircleCurrent: {
-        backgroundColor: colors.purplePlay || '#4F46E5',
+        backgroundColor: colors.primary,
     },
     dayCircleCompleted: {
-        backgroundColor: '#EEF2FF',
+        backgroundColor: '#EFF6FF',
     },
     dayCircleLocked: {
         backgroundColor: '#F1F5F9',
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
         color: colors.white,
     },
     dayNumberCompletedText: {
-        color: colors.purplePlay || '#4F46E5',
+        color: colors.primary,
     },
     // lockIcon: {
     //     fontSize: 16,
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
         color: '#94A3B8',
     },
     dayNameCurrentLabel: {
-        color: colors.purplePlay || '#4F46E5',
+        color: colors.primary,
         fontWeight: 'bold',
     },
     // Today's Task Card
@@ -351,14 +351,14 @@ const styles = StyleSheet.create({
     },
     taskProgressBarTrack: {
         height: 6,
-        backgroundColor: '#EEF2FF',
+        backgroundColor: '#EFF6FF',
         borderRadius: 3,
         marginBottom: 12,
         overflow: 'hidden',
     },
     taskProgressBarFill: {
         height: '100%',
-        backgroundColor: colors.purplePlay || '#4F46E5',
+        backgroundColor: colors.primary,
         borderRadius: 3,
     },
     taskFooterRow: {
@@ -375,11 +375,11 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontFamily: fonts.bold || 'Poppins-Bold',
         fontWeight: 'bold',
-        color: colors.purplePlay || '#4F46E5',
+        color: colors.primary,
     },
     // Reward Card
     rewardCard: {
-        backgroundColor: '#EEF2FF',
+        backgroundColor: '#EFF6FF',
         borderRadius: 20,
         padding: 16,
         flexDirection: 'row',

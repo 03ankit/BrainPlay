@@ -8,8 +8,19 @@ export default function AnswerBoxes({ wordLength = 4, selectedLetters = [], onDe
     // Generate array of length wordLength dynamically
     const boxes = Array.from({ length: wordLength });
 
+    // Dynamic sizing based on word length to fit all devices neatly
+    const boxSize = wordLength >= 8
+        ? { width: 34, height: 44, fontSize: 18, borderRadius: 10, gap: 4 }
+        : wordLength >= 7
+        ? { width: 38, height: 48, fontSize: 20, borderRadius: 11, gap: 5 }
+        : wordLength >= 6
+        ? { width: 44, height: 54, fontSize: 24, borderRadius: 12, gap: 6 }
+        : wordLength === 5
+        ? { width: 48, height: 58, fontSize: 26, borderRadius: 13, gap: 7 }
+        : { width: 54, height: 62, fontSize: 28, borderRadius: 14, gap: 8 };
+
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { gap: boxSize.gap }]}>
             {boxes.map((_, index) => {
                 const selected = selectedLetters[index]; // letter object or string if filled
                 const isFilled = Boolean(selected);
@@ -29,13 +40,18 @@ export default function AnswerBoxes({ wordLength = 4, selectedLetters = [], onDe
                         key={`answer_box_${index}`}
                         style={[
                             styles.box,
+                            {
+                                width: boxSize.width,
+                                height: boxSize.height,
+                                borderRadius: boxSize.borderRadius,
+                            },
                             isFilled ? styles.boxFilled : styles.boxEmpty,
                         ]}
                         activeOpacity={0.7}
                         disabled={!isFilled}
                         onPress={() => isFilled && onDeselectLetter(index)}
                     >
-                        <Text style={styles.boxText}>
+                        <Text style={[styles.boxText, { fontSize: boxSize.fontSize }]}>
                             {charToDisplay}
                         </Text>
                         <View

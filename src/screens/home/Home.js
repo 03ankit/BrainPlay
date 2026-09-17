@@ -1,18 +1,89 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions } from 'react-native';
+import {
+    View,
+    Text,
+    StyleSheet,
+    ScrollView,
+    Image,
+    TouchableOpacity,
+    Dimensions,
+    StatusBar,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../../constants/colour';
+import fonts from '../../constants/fonts';
+import images from '../../constants/images';
 
 const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 48) / 2;
 
-const categories = ['All', 'Puzzle', 'Brain', 'Memory', 'Logic'];
-
-const games = [
-    { id: '1', title: 'Word Jumble', difficulty: 'MEDIUM', diffColor: colors.orange, hs: 4500, icon: '🧩', color: colors.purplePlay },
-    { id: '2', title: 'Color Match', difficulty: 'EASY', diffColor: colors.green, hs: 2100, icon: '🎨', color: colors.rose },
-    { id: '3', title: 'Memory Cards', difficulty: 'HARD', diffColor: colors.red, hs: 850, icon: '🧠', color: colors.purpleLight },
-    { id: '4', title: '2048', difficulty: 'MEDIUM', diffColor: colors.orange, hs: 12400, icon: '🔢', color: colors.blue },
-    { id: '5', title: 'Word Search', difficulty: 'EASY', diffColor: colors.green, hs: 3200, icon: '🔍', color: colors.violet },
+const featuredGames = [
+    {
+        id: '1',
+        title: 'Word Jumble',
+        difficulty: 'MEDIUM',
+        diffBg: colors.orangeLight,
+        diffColor: colors.orangeDark,
+        bestScore: '4,500',
+        icon: '🧩',
+        iconBg: '#4F46E5',
+        iconColor: colors.white,
+    },
+    {
+        id: '2',
+        title: 'Color Match',
+        difficulty: 'EASY',
+        diffBg: colors.greenMint,
+        diffColor: colors.greenDark,
+        bestScore: '2,100',
+        icon: '🎨',
+        iconBg: '#DC2626',
+        iconColor: colors.white,
+    },
+    {
+        id: '3',
+        title: 'Memory Cards',
+        difficulty: 'HARD',
+        diffBg: colors.redLight,
+        diffColor: colors.redDark,
+        bestScore: '850',
+        icon: '🧠',
+        iconBg: '#7C3AED',
+        iconColor: colors.white,
+    },
+    {
+        id: '4',
+        title: '2048',
+        difficulty: 'MEDIUM',
+        diffBg: colors.orangeLight,
+        diffColor: colors.orangeDark,
+        bestScore: '12,400',
+        icon: '🔢',
+        iconBg: '#2563EB',
+        iconColor: colors.white,
+    },
+    {
+        id: '5',
+        title: 'Word Search',
+        difficulty: 'EASY',
+        diffBg: colors.greenMint,
+        diffColor: colors.greenDark,
+        bestScore: '3,200',
+        icon: '🔍',
+        iconBg: '#DBEAFE',
+        iconColor: '#1D4ED8',
+    },
+    {
+        id: '6',
+        title: 'Math Quiz',
+        difficulty: 'HARD',
+        diffBg: colors.redLight,
+        diffColor: colors.redDark,
+        bestScore: '5,680',
+        icon: '🧮',
+        iconBg: '#1E40AF',
+        iconColor: colors.white,
+    },
 ];
 
 export default function Home({ navigation }) {
@@ -23,284 +94,424 @@ export default function Home({ navigation }) {
             game: game.title,
             title: game.title,
             difficulty: game.difficulty,
-            color: game.color,
+            color: game.iconBg,
         });
     };
 
+    const handleStreakPress = () => {
+        navigation.navigate('WeeklyStreakDetail');
+    };
+
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                
-                {/* Header */}
-                <View style={styles.header}>
-                    <Image source={require('../../assets/image/user.png')} style={styles.avatar} />
-                    <Text style={styles.headerTitle}>BrainPlay</Text>
-                    <View style={styles.levelPill}>
-                        <Text style={styles.levelText}>Lv. 24 • 1,250 🏆</Text>
-                    </View>
-                </View>
+        <View style={[styles.screen, { paddingTop: Math.max(insets.top, 14) }]}>
+            <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
-                {/* Daily Challenge Section */}
-                <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Daily Challenge</Text>
-                    <TouchableOpacity>
-                        <Text style={styles.viewAll}>View All</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dailyScroll} contentContainerStyle={styles.dailyContent}>
-                    <View style={styles.challengeCard}>
-                        <Text style={styles.ongoingText}>ONGOING</Text>
-                        <Text style={styles.challengeTitle}>Memory Marathon</Text>
-                        <View style={styles.timerRow}>
-                            <Text style={styles.timerIcon}>⏱</Text>
-                            <Text style={styles.timerText}>Ends in 2h 14m</Text>
-                        </View>
-                    </View>
-                    <View style={[styles.challengeCard, { backgroundColor: colors.darkBlue }]}>
-                        <Text style={styles.ongoingText}>NEW</Text>
-                        <Text style={styles.challengeTitle}>Math Genius</Text>
-                        <View style={styles.timerRow}>
-                            <Text style={styles.timerIcon}>⭐</Text>
-                            <Text style={styles.timerText}>Reward: 500 pts</Text>
-                        </View>
-                    </View>
-                </ScrollView>
-
-                {/* Categories */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll} contentContainerStyle={styles.categoryContent}>
-                    {categories.map((cat, index) => (
-                        <TouchableOpacity key={index} style={[styles.categoryPill, index === 0 && styles.categoryPillActive]}>
-                            <Text style={[styles.categoryText, index === 0 && styles.categoryTextActive]}>{cat}</Text>
+            {/* Main Scrollable Content */}
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+            >
+                {/* 1. Top App Bar */}
+                <View style={styles.topBar}>
+                    <View style={styles.brandRow}>
+                        {/* User Avatar with outer border */}
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => navigation.navigate('Profile')}
+                            style={styles.avatarWrap}
+                        >
+                            <Image
+                                source={images.person}
+                                style={styles.avatarImage}
+                                resizeMode="cover"
+                            />
                         </TouchableOpacity>
-                    ))}
-                </ScrollView>
 
-                {/* Games Grid */}
-                <View style={styles.gridContainer}>
-                    {games.map((game) => (
+                        {/* App Brand Name */}
+                        <Text style={styles.brandTitle}>BrainPlay</Text>
+                    </View>
+
+                    {/* Level & Coins Badge */}
+                    <View style={styles.levelBadge}>
+                        <Text style={styles.levelBadgeText}>
+                            Lv. 24 • 1,250 <Text style={styles.coinEmoji}>🪙</Text>
+                        </Text>
+                    </View>
+                </View>
+
+                {/* 2. Welcome Greeting & Screen Title */}
+                <View style={styles.greetingSection}>
+                    <Text style={styles.welcomeText}>Welcome back, Alex 👋</Text>
+                    <Text style={styles.pageTitle}>Pick Your Challenge</Text>
+                </View>
+
+                {/* 3. Hero Streak / Brain Score Card (Royal Blue Theme) */}
+                <TouchableOpacity
+                    style={styles.heroCard}
+                    activeOpacity={0.9}
+                    onPress={handleStreakPress}
+                >
+                    {/* Background Glow Overlay */}
+                    <View style={styles.heroGlowCircle} />
+
+                    <View style={styles.heroLeft}>
+                        {/* 7 Day Streak Tag */}
+                        <View style={styles.streakTagRow}>
+                            <Text style={styles.streakFireIcon}>🔥</Text>
+                            <Text style={styles.streakTagText}>7 DAY STREAK</Text>
+                        </View>
+
+                        {/* Brain Score Title */}
+                        <Text style={styles.heroScoreTitle}>Brain Score 1,420</Text>
+
+                        {/* Subtitle */}
+                        <Text style={styles.heroSubtitle}>
+                            Top 5% cognitive speed this week
+                        </Text>
+                    </View>
+
+                    {/* Right Icon Button */}
+                    <View style={styles.heroRightIconBox}>
+                        <Text style={styles.heroRightIcon}>📈</Text>
+                    </View>
+                </TouchableOpacity>
+
+                {/* 4. Featured Games Header Row */}
+                <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.sectionTitle}>Featured Games</Text>
+                    <Text style={styles.sectionBadge}>6 Ready to Play</Text>
+                </View>
+
+                {/* 5. 2-Column Games Grid */}
+                <View style={styles.gamesGrid}>
+                    {featuredGames.map((game) => (
                         <TouchableOpacity
                             key={game.id}
                             style={styles.gameCard}
-                            activeOpacity={0.85}
+                            activeOpacity={0.88}
                             onPress={() => handlePlayGame(game)}
                         >
-                            <View style={[styles.iconContainer, { backgroundColor: game.color }]}>
-                                <Text style={styles.iconText}>{game.icon}</Text>
-                            </View>
-                            <Text style={styles.gameTitle}>{game.title}</Text>
-                            
-                            <View style={styles.difficultyRow}>
-                                <View style={[styles.dot, { backgroundColor: game.diffColor }]} />
-                                <Text style={styles.difficultyText}>{game.difficulty}</Text>
+                            {/* Card Top Row: Icon & Difficulty Tag */}
+                            <View style={styles.cardTopRow}>
+                                <View
+                                    style={[
+                                        styles.gameIconBox,
+                                        { backgroundColor: game.iconBg },
+                                    ]}
+                                >
+                                    <Text style={styles.gameIconEmoji}>{game.icon}</Text>
+                                </View>
+
+                                <View
+                                    style={[
+                                        styles.diffBadge,
+                                        { backgroundColor: game.diffBg },
+                                    ]}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.diffBadgeText,
+                                            { color: game.diffColor },
+                                        ]}
+                                    >
+                                        {game.difficulty}
+                                    </Text>
+                                </View>
                             </View>
 
-                            <Text style={styles.hsText}>HS: {game.hs}</Text>
+                            {/* Game Title */}
+                            <Text style={styles.gameCardTitle} numberOfLines={1}>
+                                {game.title}
+                            </Text>
 
-                            <View style={styles.playButton}>
-                                <Text style={styles.playButtonText}>Play</Text>
-                            </View>
+                            {/* Best Score */}
+                            <Text style={styles.bestScoreText} numberOfLines={1}>
+                                Best: {game.bestScore}
+                            </Text>
+
+                            {/* Play Action Button (Vibrant Royal Blue) */}
+                            <TouchableOpacity
+                                style={styles.cardPlayButton}
+                                activeOpacity={0.85}
+                                onPress={() => handlePlayGame(game)}
+                            >
+                                <Text style={styles.cardPlayIcon}>▶</Text>
+                                <Text style={styles.cardPlayText}>Play</Text>
+                            </TouchableOpacity>
                         </TouchableOpacity>
                     ))}
                 </View>
-
             </ScrollView>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
+    screen: {
         flex: 1,
-        backgroundColor: colors.background,
+        backgroundColor: '#F8FAFC',
     },
     scrollContent: {
-        paddingBottom: 24,
+        paddingHorizontal: 20,
+        paddingBottom: 28,
     },
-    header: {
+
+    // 1. Top App Bar
+    topBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
         justifyContent: 'space-between',
+        paddingVertical: 12,
+        marginBottom: 16,
     },
-    avatar: {
-        width: 40,
-        height: 40,
+    brandRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    avatarWrap: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#DBEAFE',
+        borderWidth: 2,
+        borderColor: '#93C5FD',
+        overflow: 'hidden',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    avatarImage: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+    },
+    brandTitle: {
+        fontSize: 24,
+        fontFamily: fonts.bold,
+        fontWeight: '900',
+        color: '#2563EB', // Vibrant Royal Blue
+        letterSpacing: -0.3,
+    },
+    levelBadge: {
+        backgroundColor: '#EFF6FF',
+        paddingHorizontal: 14,
+        paddingVertical: 7,
         borderRadius: 20,
-        backgroundColor: colors.avatarBg,
+        borderWidth: 1,
+        borderColor: '#DBEAFE',
     },
-    headerTitle: {
-        fontSize: 22,
+    levelBadgeText: {
+        color: '#1D4ED8',
+        fontSize: 13,
+        fontFamily: fonts.bold,
         fontWeight: '800',
-        color: colors.primary,
-        flex: 1,
-        marginLeft: 12,
     },
-    levelPill: {
-        backgroundColor: colors.primaryLight,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
+    coinEmoji: {
+        fontSize: 13,
     },
-    levelText: {
-        color: colors.primary,
-        fontSize: 12,
-        fontWeight: 'bold',
+
+    // 2. Greeting Section
+    greetingSection: {
+        marginBottom: 20,
     },
-    sectionHeader: {
+    welcomeText: {
+        fontSize: 15,
+        fontFamily: fonts.medium,
+        color: colors.grayDark,
+        marginBottom: 4,
+    },
+    pageTitle: {
+        fontSize: 28,
+        fontFamily: fonts.bold,
+        fontWeight: '900',
+        color: colors.darkGray,
+        letterSpacing: -0.5,
+    },
+
+    // 3. Hero Streak / Brain Score Card (Royal Blue Gradient Theme)
+    heroCard: {
+        width: '100%',
+        backgroundColor: '#4338CA', // Rich Royal Blue / Indigo
+        borderRadius: 24,
+        padding: 20,
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        marginTop: 10,
+        justifyContent: 'space-between',
+        overflow: 'hidden',
+        position: 'relative',
+        marginBottom: 26,
+        shadowColor: '#3B82F6',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.32,
+        shadowRadius: 16,
+        elevation: 6,
+    },
+    heroGlowCircle: {
+        position: 'absolute',
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        backgroundColor: '#3B82F6',
+        opacity: 0.45,
+        top: -60,
+        right: -40,
+    },
+    heroLeft: {
+        flex: 1,
+        paddingRight: 12,
+    },
+    streakTagRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 6,
+        gap: 4,
+    },
+    streakFireIcon: {
+        fontSize: 14,
+    },
+    streakTagText: {
+        color: '#FDE047',
+        fontSize: 11,
+        fontFamily: fonts.bold,
+        fontWeight: '900',
+        letterSpacing: 1.2,
+    },
+    heroScoreTitle: {
+        color: colors.white,
+        fontSize: 22,
+        fontFamily: fonts.bold,
+        fontWeight: '900',
+        marginBottom: 4,
+        letterSpacing: -0.2,
+    },
+    heroSubtitle: {
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontSize: 12.5,
+        fontFamily: fonts.medium,
+    },
+    heroRightIconBox: {
+        width: 48,
+        height: 48,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.35)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    heroRightIcon: {
+        fontSize: 22,
+    },
+
+    // 4. Section Header
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         marginBottom: 16,
     },
     sectionTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: colors.darkBlue,
+        fontSize: 21,
+        fontFamily: fonts.bold,
+        fontWeight: '900',
+        color: colors.darkGray,
+        letterSpacing: -0.3,
     },
-    viewAll: {
-        color: colors.primary,
-        fontWeight: '600',
-        fontSize: 14,
+    sectionBadge: {
+        color: '#2563EB',
+        fontSize: 13,
+        fontFamily: fonts.bold,
+        fontWeight: '800',
     },
-    dailyScroll: {
-        flexGrow: 0,
-    },
-    dailyContent: {
-        paddingHorizontal: 20,
-        gap: 16,
-    },
-    challengeCard: {
-        width: width * 0.75,
-        height: 160,
-        backgroundColor: colors.darkPurple,
-        borderRadius: 20,
-        padding: 20,
-        justifyContent: 'flex-end',
-        marginRight: 16,
-    },
-    ongoingText: {
-        color: colors.grayLight,
-        fontSize: 10,
-        fontWeight: 'bold',
-        letterSpacing: 1,
-        marginBottom: 8,
-    },
-    challengeTitle: {
-        color: colors.white,
-        fontSize: 22,
-        fontWeight: 'bold',
-        marginBottom: 12,
-    },
-    timerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    timerIcon: {
-        fontSize: 14,
-        marginRight: 6,
-    },
-    timerText: {
-        color: colors.grayLighter,
-        fontSize: 12,
-        fontWeight: '500',
-    },
-    categoryScroll: {
-        marginTop: 24,
-        flexGrow: 0,
-        marginBottom: 20,
-    },
-    categoryContent: {
-        paddingHorizontal: 20,
-        gap: 12,
-    },
-    categoryPill: {
-        backgroundColor: colors.primaryLight,
-        paddingHorizontal: 20,
-        paddingVertical: 10,
-        borderRadius: 20,
-        marginRight: 12,
-    },
-    categoryPillActive: {
-        backgroundColor: colors.primary,
-    },
-    categoryText: {
-        color: colors.gray,
-        fontWeight: '600',
-        fontSize: 14,
-    },
-    categoryTextActive: {
-        color: colors.white,
-    },
-    gridContainer: {
+
+    // 5. 2-Column Games Grid
+    gamesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        paddingHorizontal: 16,
         justifyContent: 'space-between',
     },
     gameCard: {
-        width: (width - 48) / 2,
+        width: CARD_WIDTH,
         backgroundColor: colors.white,
-        borderRadius: 20,
-        padding: 16,
+        borderRadius: 22,
+        padding: 14,
         marginBottom: 16,
-        shadowColor: colors.black,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+        borderWidth: 1,
+        borderColor: colors.grayLighter,
+        shadowColor: '#2563EB',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        elevation: 3,
     },
-    iconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    iconText: {
-        fontSize: 24,
-    },
-    gameTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: colors.darkBlue,
-        marginBottom: 8,
-    },
-    difficultyRow: {
+    cardTopRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         marginBottom: 12,
     },
-    dot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        marginRight: 6,
-    },
-    difficultyText: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: colors.grayDark,
-        letterSpacing: 0.5,
-    },
-    hsText: {
-        fontSize: 12,
-        color: colors.gray,
-        marginBottom: 16,
-    },
-    playButton: {
-        backgroundColor: colors.purplePlay,
-        borderRadius: 12,
-        paddingVertical: 12,
+    gameIconBox: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
         alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
-    playButtonText: {
+    gameIconEmoji: {
+        fontSize: 20,
+    },
+    diffBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 10,
+    },
+    diffBadgeText: {
+        fontSize: 9.5,
+        fontFamily: fonts.bold,
+        fontWeight: '900',
+        letterSpacing: 0.4,
+    },
+    gameCardTitle: {
+        fontSize: 15.5,
+        fontFamily: fonts.bold,
+        fontWeight: '900',
+        color: colors.darkGray,
+        marginBottom: 3,
+    },
+    bestScoreText: {
+        fontSize: 12.5,
+        fontFamily: fonts.medium,
+        color: colors.gray,
+        marginBottom: 14,
+    },
+    cardPlayButton: {
+        width: '100%',
+        height: 40,
+        backgroundColor: '#4F46E5', // Vibrant Royal Blue Button
+        borderRadius: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        shadowColor: '#4F46E5',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 3,
+    },
+    cardPlayIcon: {
         color: colors.white,
-        fontWeight: 'bold',
-        fontSize: 14,
-    }
+        fontSize: 10,
+    },
+    cardPlayText: {
+        color: colors.white,
+        fontSize: 13.5,
+        fontFamily: fonts.bold,
+        fontWeight: '800',
+    },
 });

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -7,11 +7,15 @@ import {
     TouchableOpacity,
     Dimensions,
     ScrollView,
+    BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import images from '../../constants/images';
 import fonts from '../../constants/fonts';
 import colors from '../../constants/colour';
+import StarRequirementModal from '../../components/game/StarRequirementModal';
+import progressRepository from '../../database/repositories/progressRepository';
 
 const { width, height } = Dimensions.get('window');
 
@@ -24,15 +28,58 @@ export default function LevelCompleteScreen({ navigation, route }) {
     const title = route?.params?.title || 'Mastermind!';
     const gameTitle = route?.params?.game || 'Word Jumble';
 
+    // Star requirement modal state
+    const [showStarModal, setShowStarModal] = useState(false);
+    const [world1Stars, setWorld1Stars] = useState(0);
+
+    const gameId = gameTitle === 'Color Match' ? '2' : '1';
+
+    // Calculate World 1 (levels 1-5) total stars
+    const fetchWorld1Stars = useCallback(async () => {
+        try {
+            const progressList = await progressRepository.getPlayerProgress('local_player', gameId);
+            let total = 0;
+            if (Array.isArray(progressList)) {
+                progressList.forEach((p) => {
+                    const lvl = Number(p.level_number);
+                    if (lvl >= 1 && lvl <= 5 && Number(p.is_completed) === 1) {
+                        total += Number(p.stars) || 0;
+                    }
+                });
+            }
+            setWorld1Stars(total);
+            return total;
+        } catch (err) {
+            console.error('Error checking stars progress:', err);
+            return 0;
+        }
+    }, [gameId]);
+
+    useEffect(() => {
+        fetchWorld1Stars();
+    }, [fetchWorld1Stars]);
+
     // Continue to Next Level
-    const handleContinue = () => {
+    const handleContinue = async () => {
         const nextLevel = levelNumber + 1;
+
+        // If completing Level 5 and trying to go to Level 6, enforce 11 stars minimum requirement
+        if (nextLevel === 6) {
+            const currentTotalStars = await fetchWorld1Stars();
+            if (currentTotalStars < 11) {
+                setShowStarModal(true);
+                return;
+            }
+        }
+
+        const targetGameScreen = gameTitle === 'Color Match' ? 'ColorMatchScreen' : 'WordPuzzleScreen';
+
         navigation.reset({
             index: 2,
             routes: [
                 { name: 'BottomNavigation' },
                 { name: 'SelectLevel', params: { level: nextLevel, game: gameTitle } },
-                { name: 'WordPuzzleScreen', params: { level: nextLevel, game: gameTitle } },
+                { name: targetGameScreen, params: { level: nextLevel, game: gameTitle } },
             ],
         });
     };
@@ -47,6 +94,19 @@ export default function LevelCompleteScreen({ navigation, route }) {
             ],
         });
     };
+
+    // Intercept hardware back button to navigate home instead of returning to completed puzzle screen
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                handleHome();
+                return true;
+            };
+
+            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => subscription.remove();
+        }, [levelNumber, gameTitle])
+    );
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -125,6 +185,17 @@ export default function LevelCompleteScreen({ navigation, route }) {
 
                 </View>
             </ScrollView>
+
+            {/* Star Requirement Locked Modal */}
+            <StarRequirementModal
+                visible={showStarModal}
+                requiredStars={11}
+                currentStars={world1Stars}
+                targetLevel={6}
+                previousLevelsRange="Levels 1–5"
+                onReplay={handleHome}
+                onClose={() => setShowStarModal(false)}
+            />
         </View>
     );
 }

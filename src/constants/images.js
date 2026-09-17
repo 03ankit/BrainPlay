@@ -25,6 +25,7 @@ export const images = {
     word_jumble_bg: require('../assets/image/word_jumble_bg.jpg'),
     trophy: require('../assets/image/trophy.png'),
     reload: require('../assets/image/reload.png'),
+    close: require('../assets/image/close.png'),
 };
 
 export default images;

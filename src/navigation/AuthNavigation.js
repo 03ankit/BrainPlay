@@ -18,7 +18,11 @@ export default function AuthNavigation() {
         >
             <Stack.Screen name="Signup" component={SignupScreen} />
             <Stack.Screen name="Otp" component={OtpScreen} />
-            <Stack.Screen name="Profile" component={Profile} />
+            <Stack.Screen
+                name="Profile"
+                component={Profile}
+                options={{ gestureEnabled: false }}
+            />
         </Stack.Navigator>
     );
 }

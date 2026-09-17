@@ -64,7 +64,10 @@ export default function WordPuzzleScreen({ navigation, route }) {
 
     // Game state
     const [playerLevel, setPlayerLevel] = useState(selectedLevel);
-    const [currentQuestion, setCurrentQuestion] = useState(null);
+    const [currentQuestion, setCurrentQuestion] = useState(() => {
+        const fallbackIdx = (selectedLevel - 1) % FALLBACK_QUESTIONS.length;
+        return FALLBACK_QUESTIONS[fallbackIdx] || null;
+    });
     const [availableLetters, setAvailableLetters] = useState([]);
     const [selectedLetters, setSelectedLetters] = useState([]);
 

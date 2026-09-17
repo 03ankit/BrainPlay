@@ -806,7 +806,7 @@ const OtpInputBox = forwardRef(function OtpInputBox(
         cellHeight = 56,
         locked = false,
         error = false,
-        autoFocus = true,
+        autoFocus = false,
         onFilled,
     },
     ref
@@ -834,14 +834,20 @@ const OtpInputBox = forwardRef(function OtpInputBox(
     const safetyTimerRef = useRef(null);
 
     const triggerFocus = useCallback(() => {
-        if (inputRef.current) {
+        if (!inputRef.current || !mountedRef.current) return;
+
+        // If the native input is still marked focused when the soft keyboard was dismissed,
+        // blur first and then focus so the OS reliably re-opens the soft keyboard.
+        if (inputRef.current.isFocused?.()) {
             inputRef.current.blur();
-            setTimeout(() => {
-                if (mountedRef.current && inputRef.current) {
-                    inputRef.current.focus();
-                }
-            }, 50);
         }
+
+        setTimeout(() => {
+            if (inputRef.current && mountedRef.current) {
+                inputRef.current.focus();
+                setIsFocusedInput(true);
+            }
+        }, 50);
     }, []);
 
     useEffect(() => {
@@ -1035,7 +1041,7 @@ const OtpInputBox = forwardRef(function OtpInputBox(
     };
 
     return (
-        <View
+        <Pressable
             style={[
                 styles.wrapper,
                 {
@@ -1043,17 +1049,17 @@ const OtpInputBox = forwardRef(function OtpInputBox(
                     paddingHorizontal: overflowPadding / 2,
                 },
             ]}
+            onPress={() => {
+                if (!isInputLocked) {
+                    triggerFocus();
+                }
+            }}
         >
             {/* Visual OTP Box Row */}
-            <Pressable
+            <View
                 ref={rowRef}
                 collapsable={false}
                 style={styles.row}
-                onPress={() => {
-                    if (!isInputLocked) {
-                        triggerFocus();
-                    }
-                }}
             >
                 {Array.from({ length: cellCount }).map((_, index) => {
                     const digit = value[index] || '';
@@ -1116,7 +1122,7 @@ const OtpInputBox = forwardRef(function OtpInputBox(
                         onComplete={handleComplete}
                     />
                 )}
-            </Pressable>
+            </View>
 
             {/* Overlaid master text input for native keyboard & touch focus */}
             {!playing && (
@@ -1138,7 +1144,7 @@ const OtpInputBox = forwardRef(function OtpInputBox(
                     style={[StyleSheet.absoluteFillObject, styles.hiddenInput]}
                 />
             )}
-        </View>
+        </Pressable>
     );
 });
 

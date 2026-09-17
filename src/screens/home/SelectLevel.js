@@ -16,6 +16,8 @@ import fonts from '../../constants/fonts';
 import images from '../../constants/images';
 import { MapLevelNode, BossSummitCard } from '../../components/game/LevelCard';
 import progressRepository from '../../database/repositories/progressRepository';
+import StarRequirementModal from '../../components/game/StarRequirementModal';
+import LevelLockedModal from '../../components/game/LevelLockedModal';
 
 const { width } = Dimensions.get('window');
 
@@ -56,13 +58,23 @@ export default function SelectLevel({ navigation, route }) {
     // State for SQLite player progress and selected level
     const [playerProgress, setPlayerProgress] = useState([]);
     const [selectedLevel, setSelectedLevel] = useState(Number(route?.params?.level) || 1);
+    const [showStarModal, setShowStarModal] = useState(false);
+    const [lockedModal, setLockedModal] = useState({
+        visible: false,
+        targetLevel: 2,
+        requiredLevel: 1,
+        title: 'Level Locked',
+        message: '',
+    });
+
+    const gameId = gameTitle === 'Color Match' ? '2' : '1';
 
     // Fetch player progress from SQLite whenever screen comes into focus
     useFocusEffect(
         useCallback(() => {
             const loadProgress = async () => {
                 try {
-                    const data = await progressRepository.getPlayerProgress('local_player', '1');
+                    const data = await progressRepository.getPlayerProgress('local_player', gameId);
                     setPlayerProgress(data || []);
 
                     // Calculate highest completed level sequentially
@@ -77,7 +89,20 @@ export default function SelectLevel({ navigation, route }) {
                         highestConsecutive += 1;
                     }
 
-                    const activeLvl = Math.min(highestConsecutive + 1, 20);
+                    // Compute World 1 (levels 1-5) stars
+                    let w1Stars = 0;
+                    (data || []).forEach((p) => {
+                        const lvl = Number(p.level_number);
+                        if (lvl >= 1 && lvl <= 5 && Number(p.is_completed) === 1) {
+                            w1Stars += Number(p.stars) || 0;
+                        }
+                    });
+
+                    // If level 5 is completed but World 1 stars < 11, max unlocked level is 5
+                    let activeLvl = Math.min(highestConsecutive + 1, 20);
+                    if (highestConsecutive >= 5 && w1Stars < 11 && activeLvl > 5) {
+                        activeLvl = 5;
+                    }
 
                     // Prefer route param level if specified and unlocked, otherwise active level
                     const paramLvl = Number(route?.params?.level);
@@ -92,7 +117,7 @@ export default function SelectLevel({ navigation, route }) {
             };
 
             loadProgress();
-        }, [route?.params?.level])
+        }, [route?.params?.level, gameId])
     );
 
     // Compute stats from playerProgress
@@ -107,14 +132,22 @@ export default function SelectLevel({ navigation, route }) {
         highestCompletedLevel += 1;
     }
 
-    const activeLevelNumber = Math.min(highestCompletedLevel + 1, 20);
-
+    let world1Stars = 0;
     let totalEarnedStars = 0;
     playerProgress.forEach((item) => {
         if (Number(item.is_completed) === 1) {
-            totalEarnedStars += Number(item.stars) || 0;
+            const s = Number(item.stars) || 0;
+            totalEarnedStars += s;
+            if (Number(item.level_number) >= 1 && Number(item.level_number) <= 5) {
+                world1Stars += s;
+            }
         }
     });
+
+    let activeLevelNumber = Math.min(highestCompletedLevel + 1, 20);
+    if (highestCompletedLevel >= 5 && world1Stars < 11 && activeLevelNumber > 5) {
+        activeLevelNumber = 5;
+    }
 
     // Map node items with exact dynamic status & star rating from SQLite
     const mapNodesData = mapNodesConfig.map((item) => {
@@ -128,6 +161,11 @@ export default function SelectLevel({ navigation, route }) {
         } else if (item.level === activeLevelNumber) {
             status = 'active';
             stars = 0;
+        }
+
+        // Lock level 6 and beyond if World 1 stars requirement (11 stars) is not met
+        if (item.level >= 6 && world1Stars < 11 && status !== 'completed') {
+            status = 'locked';
         }
 
         return {
@@ -152,38 +190,75 @@ export default function SelectLevel({ navigation, route }) {
     // Tapping a level node
     const handleNodePress = (level) => {
         const node = mapNodesData.find((n) => n.level === level);
+
+        // Check if user tapped Level 6+ without meeting 11 stars in World 1
+        if (level >= 6 && world1Stars < 11 && node?.status === 'locked') {
+            setShowStarModal(true);
+            return;
+        }
+
         if (node && node.status !== 'locked') {
             setSelectedLevel(level);
         } else {
-            Alert.alert(
-                '🔒 Level Locked',
-                `Complete Level ${level - 1} first to unlock Level ${level}!`,
-                [{ text: 'OK' }]
-            );
+            const reqLevel = Math.max(1, level - 1);
+            setLockedModal({
+                visible: true,
+                targetLevel: level,
+                requiredLevel: reqLevel,
+                title: level === 20 ? 'Summit Locked' : 'Level Locked',
+                message: level === 20
+                    ? 'Complete previous levels to unlock the Royal Boss Summit!'
+                    : `Complete Level ${reqLevel} first to unlock Level ${level}!`,
+            });
         }
     };
 
     // Play selected level button
     const handlePlaySelectedLevel = () => {
-        const targetNode = mapNodesData.find((n) => n.level === selectedLevel);
-        if (targetNode && targetNode.status === 'locked') {
-            Alert.alert(
-                '🔒 Level Locked',
-                `Complete Level ${selectedLevel - 1} first to unlock Level ${selectedLevel}!`,
-                [{ text: 'OK' }]
-            );
+        if (selectedLevel >= 6 && world1Stars < 11) {
+            setShowStarModal(true);
             return;
         }
-        navigation.navigate('WordPuzzleScreen', { level: selectedLevel, game: gameTitle });
+
+        const targetNode = mapNodesData.find((n) => n.level === selectedLevel);
+        if (targetNode && targetNode.status === 'locked') {
+            const reqLevel = Math.max(1, selectedLevel - 1);
+            setLockedModal({
+                visible: true,
+                targetLevel: selectedLevel,
+                requiredLevel: reqLevel,
+                title: selectedLevel === 20 ? 'Summit Locked' : 'Level Locked',
+                message: selectedLevel === 20
+                    ? 'Complete previous levels to unlock the Royal Boss Summit!'
+                    : `Complete Level ${reqLevel} first to unlock Level ${selectedLevel}!`,
+            });
+            return;
+        }
+
+        if (gameTitle === 'Color Match') {
+            navigation.navigate('ColorMatchDetail', { level: selectedLevel, game: gameTitle });
+        } else {
+            navigation.navigate('WordPuzzleScreen', { level: selectedLevel, game: gameTitle });
+        }
     };
 
     const handlePlayBoss = () => {
         const bossNode = mapNodesData.find((n) => n.level === 20);
         if (bossNode && bossNode.status !== 'locked') {
             setSelectedLevel(20);
-            navigation.navigate('WordPuzzleScreen', { level: 20, game: gameTitle });
+            if (gameTitle === 'Color Match') {
+                navigation.navigate('ColorMatchScreen', { level: 20, game: gameTitle });
+            } else {
+                navigation.navigate('WordPuzzleScreen', { level: 20, game: gameTitle });
+            }
         } else {
-            Alert.alert('🔒 Summit Locked', 'Complete previous levels to unlock the Royal Boss Summit!');
+            setLockedModal({
+                visible: true,
+                targetLevel: 20,
+                requiredLevel: 19,
+                title: 'Summit Locked',
+                message: 'Complete previous levels to unlock the Royal Boss Summit!',
+            });
         }
     };
 
@@ -191,7 +266,7 @@ export default function SelectLevel({ navigation, route }) {
     const BOSS_CARD_HEIGHT = 180;
     let currentY = BOSS_CARD_HEIGHT + 10;
     const itemPositions = mapNodesData.map((item) => {
-        const rowHeight = item.status === 'active' ? 104 : 80;
+        const rowHeight = item.status === 'active' ? 108 : (item.level === 1 ? 96 : 80);
         const centerX = (width - 40) * item.xRatio + 20;
         const centerY = currentY + (item.status === 'active' ? 52 : 38);
         const pos = {
@@ -354,7 +429,7 @@ export default function SelectLevel({ navigation, route }) {
                                 key={`node_wrapper_${item.level}`}
                                 style={[
                                     styles.nodeRow,
-                                    { height: item.status === 'active' ? 104 : 80 },
+                                    { height: item.status === 'active' ? 108 : (item.level === 1 ? 96 : 80) },
                                 ]}
                             >
                                 <View style={[styles.nodeAbsoluteContainer, { left: leftOffset }]}>
@@ -375,7 +450,7 @@ export default function SelectLevel({ navigation, route }) {
                 </View>
 
                 {/* Bottom Padding */}
-                <View style={{ height: 110 }} />
+                <View style={{ height: 140 }} />
             </ScrollView>
 
             {/* Sticky Bottom Action Bar */}
@@ -406,6 +481,27 @@ export default function SelectLevel({ navigation, route }) {
                     </TouchableOpacity>
                 </View>
             </View>
+
+            {/* Star Requirement Locked Modal */}
+            <StarRequirementModal
+                visible={showStarModal}
+                requiredStars={11}
+                currentStars={world1Stars}
+                targetLevel={6}
+                previousLevelsRange="Levels 1–5"
+                onReplay={() => setShowStarModal(false)}
+                onClose={() => setShowStarModal(false)}
+            />
+
+            {/* Level Locked Custom Modal */}
+            <LevelLockedModal
+                visible={lockedModal.visible}
+                targetLevel={lockedModal.targetLevel}
+                requiredLevel={lockedModal.requiredLevel}
+                title={lockedModal.title}
+                message={lockedModal.message}
+                onClose={() => setLockedModal((prev) => ({ ...prev, visible: false }))}
+            />
         </View>
     );
 }
@@ -545,6 +641,9 @@ const styles = StyleSheet.create({
     },
     nodeAbsoluteContainer: {
         position: 'absolute',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'visible',
         zIndex: 10,
     },
     pathRoadDot: {

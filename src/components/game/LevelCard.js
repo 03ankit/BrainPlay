@@ -437,9 +437,11 @@ const styles = StyleSheet.create({
     // Side Badges & Chests
     startBadge: {
         position: 'absolute',
-        top: 56,
+        top: 58,
+        alignSelf: 'center',
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: colors.white,
         borderWidth: 1.5,
         borderColor: colors.world1.border,
@@ -451,18 +453,19 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 4,
         elevation: 3,
-        zIndex: 5,
-        gap: 3,
+        zIndex: 20,
+        minWidth: 116,
     },
     startBadgeIcon: {
         fontSize: 10,
+        marginRight: 4,
     },
     startBadgeText: {
         color: colors.world1.text,
-        fontSize: 9,
+        fontSize: 8.5,
         fontFamily: fonts.bold,
         fontWeight: '900',
-        letterSpacing: 0.4,
+        letterSpacing: 0.3,
     },
     chestPill: {
         position: 'absolute',

@@ -9,6 +9,7 @@ import {
     Text,
     View,
     Image,
+    Keyboard,
 } from 'react-native';
 import colors from '../../constants/colour';
 import CustomButton from '../../components/CustomButton';
@@ -29,6 +30,7 @@ export default function Signup({ navigation }) {
     const canContinue = useMemo(() => !!email.trim() && !loading, [email, loading]);
 
     const handleContinue = async () => {
+        Keyboard.dismiss();
         const trimmed = email.trim();
         if (!trimmed) {
             setError('Email is required');

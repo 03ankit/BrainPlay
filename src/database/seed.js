@@ -29,40 +29,40 @@ export const seedDatabase = async () => {
             );
         }
 
-        // 3. Seed all 20 Word Puzzle questions into SQLite questions table
-        const qCheck = await executeSql('SELECT COUNT(*) as count FROM questions;');
-        if (qCheck.rows.item(0).count < WORD_PUZZLE_QUESTIONS.length) {
-            console.log('🌱 Seeding all 20 Word Puzzle questions...');
-
-            for (const q of WORD_PUZZLE_QUESTIONS) {
-                const optionsJson = JSON.stringify(q.options);
-                await executeSql(
-                    `INSERT INTO questions (id, game_id, category_id, level_number, question, options, correct_answer, hint, time_limit_seconds, difficulty, points)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON CONFLICT(id) DO UPDATE SET
-                     options = excluded.options,
-                     correct_answer = excluded.correct_answer,
-                     hint = excluded.hint,
-                     time_limit_seconds = excluded.time_limit_seconds,
-                     difficulty = excluded.difficulty,
-                     points = excluded.points;`,
-                    [
-                        q.id,
-                        q.game_id,
-                        q.category_id,
-                        q.level_number,
-                        q.word,
-                        optionsJson,
-                        q.word,
-                        q.clue,
-                        q.time_limit_seconds,
-                        q.difficulty,
-                        q.points,
-                    ]
-                );
-            }
-            console.log('✅ Successfully seeded 20 Word Puzzle questions into SQLite!');
+        // 3. Seed / Sync all 20 Word Puzzle questions into SQLite questions table
+        console.log('🌱 Syncing all Word Puzzle questions...');
+        for (const q of WORD_PUZZLE_QUESTIONS) {
+            const optionsJson = JSON.stringify(q.options);
+            await executeSql(
+                `INSERT INTO questions (id, game_id, category_id, level_number, question, options, correct_answer, hint, time_limit_seconds, difficulty, points)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 ON CONFLICT(id) DO UPDATE SET
+                 game_id = excluded.game_id,
+                 category_id = excluded.category_id,
+                 level_number = excluded.level_number,
+                 question = excluded.question,
+                 options = excluded.options,
+                 correct_answer = excluded.correct_answer,
+                 hint = excluded.hint,
+                 time_limit_seconds = excluded.time_limit_seconds,
+                 difficulty = excluded.difficulty,
+                 points = excluded.points;`,
+                [
+                    q.id,
+                    q.game_id,
+                    q.category_id,
+                    q.level_number,
+                    q.word,
+                    optionsJson,
+                    q.word,
+                    q.clue,
+                    q.time_limit_seconds,
+                    q.difficulty,
+                    q.points,
+                ]
+            );
         }
+        console.log('✅ Successfully synced Word Puzzle questions into SQLite!');
 
         console.log('✅ Seed check completed.');
     } catch (error) {

@@ -5,10 +5,12 @@ import {
     StyleSheet,
     TouchableOpacity,
     Modal,
+    Image,
     Dimensions,
 } from 'react-native';
 import fonts from '../../constants/fonts';
 import colors from '../../constants/colour';
+import images from '../../constants/images';
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +31,19 @@ export default function ExitGameModal({
         >
             <View style={styles.overlay}>
                 <View style={styles.card}>
+                    {/* Top Right Close Button */}
+                    <TouchableOpacity
+                        style={styles.closeIconButton}
+                        activeOpacity={0.7}
+                        onPress={onCancel}
+                    >
+                        <Image
+                            source={images.close}
+                            style={styles.closeIconImage}
+                            resizeMode="contain"
+                        />
+                    </TouchableOpacity>
+
                     {/* Warning Icon Badge */}
                     <View style={styles.iconCircle}>
                         <Text style={styles.iconText}>🚪</Text>
@@ -83,6 +98,24 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 18,
         elevation: 10,
+        position: 'relative',
+    },
+    closeIconButton: {
+        position: 'absolute',
+        top: 16,
+        right: 16,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#F1F5F9',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10,
+    },
+    closeIconImage: {
+        width: 14,
+        height: 14,
+        tintColor: colors.grayDark,
     },
     iconCircle: {
         width: 64,

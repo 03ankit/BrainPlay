@@ -246,13 +246,13 @@ const styles = StyleSheet.create({
         color: '#1E293B',
     },
     liveBadge: {
-        backgroundColor: '#EEF2FF',
+        backgroundColor: '#EFF6FF',
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 8,
     },
     liveText: {
-        color: '#4F46E5',
+        color: '#2563EB',
         fontSize: 9,
         fontFamily: fonts.bold,
         fontWeight: '900',
@@ -283,11 +283,11 @@ const styles = StyleSheet.create({
         paddingBottom: 30,
     },
     featuredCard: {
-        backgroundColor: '#4F46E5',
+        backgroundColor: '#2563EB',
         borderRadius: 22,
         padding: 18,
         marginBottom: 20,
-        shadowColor: '#4F46E5',
+        shadowColor: '#2563EB',
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.35,
         shadowRadius: 12,
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     featuredDesc: {
-        color: '#E0E7FF',
+        color: '#EFF6FF',
         fontSize: 12,
         lineHeight: 18,
         marginBottom: 14,
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     featuredPlayText: {
-        color: '#4F46E5',
+        color: '#2563EB',
         fontSize: 12,
         fontFamily: fonts.bold,
         fontWeight: '900',
@@ -371,8 +371,8 @@ const styles = StyleSheet.create({
         marginRight: 6,
     },
     categoryPillActive: {
-        backgroundColor: '#4F46E5',
-        borderColor: '#4F46E5',
+        backgroundColor: '#2563EB',
+        borderColor: '#2563EB',
     },
     categoryText: {
         color: '#64748B',

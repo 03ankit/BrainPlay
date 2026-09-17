@@ -44,9 +44,6 @@ export default function OtpScreen({ route, navigation }) {
         setError('');
         setCode('');
         otpInputRef.current?.resetAnimation?.();
-        setTimeout(() => {
-            otpInputRef.current?.focus?.();
-        }, 150);
     }, []);
 
     useEffect(() => {
@@ -171,6 +168,7 @@ export default function OtpScreen({ route, navigation }) {
                             cellWidth={cellWidth}
                             cellHeight={cellWidth * 1.18}
                             locked={loading || animating}
+                            autoFocus={false}
                             onFilled={(filledCode) => {
                                 handleVerify(filledCode);
                             }}
