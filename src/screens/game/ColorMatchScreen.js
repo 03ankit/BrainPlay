@@ -19,6 +19,7 @@ import ExitGameModal from '../../components/game/ExitGameModal';
 import TimeUpModal from '../../components/game/TimeUpModal';
 import IncorrectModal from '../../components/game/IncorrectModal';
 import progressRepository from '../../database/repositories/progressRepository';
+import streakRepository from '../../database/repositories/streakRepository';
 import { getLevelChallenge } from '../../constants/colorMatchData';
 
 const { width } = Dimensions.get('window');
@@ -131,6 +132,9 @@ export default function ColorMatchScreen({ navigation, route }) {
                     highScore: pointsEarned,
                     isCompleted: 1,
                 });
+
+                // Automatically record activity for the 7-day regular daily streak
+                await streakRepository.recordDailyActivity('local_player', '2', selectedLevel);
             } catch (err) {
                 console.log('Error saving Color Match level progress:', err);
             }

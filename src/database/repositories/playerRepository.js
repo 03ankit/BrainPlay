@@ -28,7 +28,28 @@ export const updatePlayerStats = async (id = 'local_player', { xp, coins, trophi
     }
 };
 
+export const savePlayerProfile = async (id = 'local_player', { name, email, phone_number, image }) => {
+    try {
+        await executeSql(
+            `INSERT INTO profiles (id, name, email, phone_number, image, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+             ON CONFLICT(id) DO UPDATE SET
+             name = excluded.name,
+             email = excluded.email,
+             phone_number = excluded.phone_number,
+             image = excluded.image,
+             updated_at = datetime('now');`,
+            [id, name || 'Player', email || '', phone_number || '', image || null]
+        );
+        return await getPlayerProfile(id);
+    } catch (error) {
+        console.error('Error saving player profile:', error);
+        throw error;
+    }
+};
+
 export default {
     getPlayerProfile,
     updatePlayerStats,
+    savePlayerProfile,
 };

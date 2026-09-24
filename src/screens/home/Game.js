@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../../constants/colour';
 import fonts from '../../constants/fonts';
 
-const categories = ['All Games', 'Puzzle', 'Brain & Logic', 'Memory', 'Word Games', 'Speed'];
+const categories = ['All Games', 'Speed', 'Word Games', 'Memory', 'Brain & Logic'];
 
 const allGamesList = [
     {
@@ -41,6 +41,19 @@ const allGamesList = [
     },
     {
         id: '3',
+        title: 'Math Quiz',
+        category: 'Brain & Logic',
+        difficulty: 'MEDIUM',
+        diffColor: colors.orange,
+        hs: 5680,
+        icon: '🧮',
+        color: '#1E40AF',
+        desc: 'Solve arithmetic equations against the clock',
+        totalLevels: 20,
+        currentLevel: 1,
+    },
+    {
+        id: '4',
         title: 'Memory Cards',
         category: 'Memory',
         difficulty: 'HARD',
@@ -52,45 +65,6 @@ const allGamesList = [
         totalLevels: 20,
         currentLevel: 8,
     },
-    {
-        id: '4',
-        title: '2048 Fusion',
-        category: 'Brain & Logic',
-        difficulty: 'MEDIUM',
-        diffColor: colors.orange,
-        hs: 12400,
-        icon: '🔢',
-        color: colors.blue,
-        desc: 'Slide number tiles together to reach 2048',
-        totalLevels: 20,
-        currentLevel: 14,
-    },
-    {
-        id: '5',
-        title: 'Word Search',
-        category: 'Word Games',
-        difficulty: 'EASY',
-        diffColor: colors.green,
-        hs: 3200,
-        icon: '🔍',
-        color: colors.violet,
-        desc: 'Locate hidden keywords in the letter grid',
-        totalLevels: 20,
-        currentLevel: 9,
-    },
-    {
-        id: '6',
-        title: 'Pattern Matrix',
-        category: 'Puzzle',
-        difficulty: 'HARD',
-        diffColor: colors.red,
-        hs: 5120,
-        icon: '⚡',
-        color: '#D97706',
-        desc: 'Decode geometric sequences under time pressure',
-        totalLevels: 20,
-        currentLevel: 4,
-    },
 ];
 
 export default function Game({ navigation }) {
@@ -99,7 +73,7 @@ export default function Game({ navigation }) {
 
     const filteredGames = selectedCategory === 'All Games'
         ? allGamesList
-        : allGamesList.filter(g => g.category === selectedCategory || (selectedCategory === 'Puzzle' && (g.category === 'Puzzle' || g.category === 'Word Games')));
+        : allGamesList.filter(g => g.category === selectedCategory);
 
     const handleSelectGame = (game) => {
         navigation.navigate('SelectLevel', {
@@ -119,7 +93,7 @@ export default function Game({ navigation }) {
                     <View style={styles.titleRow}>
                         <Text style={styles.headerTitle}>Arcade Arena</Text>
                         <View style={styles.liveBadge}>
-                            <Text style={styles.liveText}>6 GAMES</Text>
+                            <Text style={styles.liveText}>{allGamesList.length} GAMES</Text>
                         </View>
                     </View>
                     <Text style={styles.headerSubtitle}>Select any game to view its Level Map</Text>

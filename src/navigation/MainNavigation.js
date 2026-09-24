@@ -5,9 +5,11 @@ import Settings from '../screens/home/Settings';
 import WeeklyStreakDetail from '../screens/home/WeeklyStreakDetail';
 import WordJumbleDetail from '../screens/home/WordJumbleDetail';
 import ColorMatchDetail from '../screens/home/ColorMatchDetail';
+import MathQuizDetail from '../screens/home/MathQuizDetail';
 import SelectLevel from '../screens/home/SelectLevel';
 import WordPuzzleScreen from '../screens/game/WordPuzzleScreen';
 import ColorMatchScreen from '../screens/game/ColorMatchScreen';
+import MathQuizScreen from '../screens/game/MathQuizScreen';
 import LevelCompleteScreen from '../screens/game/LevelCompleteScreen';
 
 const Stack = createNativeStackNavigator();
@@ -26,9 +28,11 @@ export default function MainNavigation() {
             <Stack.Screen name="WeeklyStreakDetail" component={WeeklyStreakDetail} />
             <Stack.Screen name="WordJumbleDetail" component={WordJumbleDetail} />
             <Stack.Screen name="ColorMatchDetail" component={ColorMatchDetail} />
+            <Stack.Screen name="MathQuizDetail" component={MathQuizDetail} />
             <Stack.Screen name="SelectLevel" component={SelectLevel} />
             <Stack.Screen name="WordPuzzleScreen" component={WordPuzzleScreen} />
             <Stack.Screen name="ColorMatchScreen" component={ColorMatchScreen} />
+            <Stack.Screen name="MathQuizScreen" component={MathQuizScreen} />
             <Stack.Screen
                 name="LevelCompleteScreen"
                 component={LevelCompleteScreen}

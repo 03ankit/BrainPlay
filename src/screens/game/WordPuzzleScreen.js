@@ -22,6 +22,7 @@ import IncorrectModal from '../../components/game/IncorrectModal';
 import questionRepository from '../../database/repositories/questionRepository';
 import gameHistoryRepository from '../../database/repositories/gameHistoryRepository';
 import progressRepository from '../../database/repositories/progressRepository';
+import streakRepository from '../../database/repositories/streakRepository';
 import fonts from '../../constants/fonts';
 import colors from '../../constants/colour';
 import WORD_PUZZLE_QUESTIONS from '../../constants/wordPuzzleQuestions';
@@ -340,6 +341,13 @@ export default function WordPuzzleScreen({ navigation, route }) {
                 highScore: earnedStars * 100,
                 isCompleted: 1,
             });
+
+            // Automatically record activity for the 7-day regular daily streak
+            try {
+                await streakRepository.recordDailyActivity('local_player', '1', playerLevel);
+            } catch (streakErr) {
+                console.log('Error updating daily streak:', streakErr);
+            }
 
             // Navigate to dedicated LevelCompleteScreen
             navigation.navigate('LevelCompleteScreen', {

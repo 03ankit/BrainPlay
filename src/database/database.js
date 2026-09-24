@@ -17,7 +17,7 @@ const CREATE_TABLE_QUERIES = [
         xp INTEGER DEFAULT 0,
         coins INTEGER DEFAULT 100,
         trophies INTEGER DEFAULT 0,
-        streak_count INTEGER DEFAULT 1,
+        streak_count INTEGER DEFAULT 0,
         created_at TEXT,
         updated_at TEXT
     );`,
@@ -84,6 +84,14 @@ const CREATE_TABLE_QUERIES = [
         stars INTEGER DEFAULT 0,
         accuracy INTEGER DEFAULT 100,
         played_at TEXT
+    );`,
+    `CREATE TABLE IF NOT EXISTS daily_activities (
+        id TEXT PRIMARY KEY,
+        profile_id TEXT NOT NULL,
+        activity_date TEXT NOT NULL,
+        game_id TEXT NOT NULL,
+        level_number INTEGER NOT NULL,
+        created_at TEXT
     );`,
 ];
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -10,9 +10,12 @@ import {
     StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import colors from '../../constants/colour';
 import fonts from '../../constants/fonts';
 import images from '../../constants/images';
+import streakRepository from '../../database/repositories/streakRepository';
+import { executeSql } from '../../database/database';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -53,32 +56,10 @@ const featuredGames = [
     },
     {
         id: '4',
-        title: '2048',
+        title: 'Math Quiz',
         difficulty: 'MEDIUM',
         diffBg: colors.orangeLight,
         diffColor: colors.orangeDark,
-        bestScore: '12,400',
-        icon: '🔢',
-        iconBg: '#2563EB',
-        iconColor: colors.white,
-    },
-    {
-        id: '5',
-        title: 'Word Search',
-        difficulty: 'EASY',
-        diffBg: colors.greenMint,
-        diffColor: colors.greenDark,
-        bestScore: '3,200',
-        icon: '🔍',
-        iconBg: '#DBEAFE',
-        iconColor: '#1D4ED8',
-    },
-    {
-        id: '6',
-        title: 'Math Quiz',
-        difficulty: 'HARD',
-        diffBg: colors.redLight,
-        diffColor: colors.redDark,
         bestScore: '5,680',
         icon: '🧮',
         iconBg: '#1E40AF',
@@ -88,6 +69,46 @@ const featuredGames = [
 
 export default function Home({ navigation }) {
     const insets = useSafeAreaInsets();
+    const [streakCount, setStreakCount] = useState(0);
+    const [completedDays, setCompletedDays] = useState(0);
+    const [userProfile, setUserProfile] = useState({
+        name: 'Player',
+        level: 1,
+        coins: 100,
+        image: null,
+    });
+
+    // Fetch live streak & profile data whenever Home comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            const loadHomeData = async () => {
+                try {
+                    // 1. Fetch streak data
+                    const data = await streakRepository.getWeeklyStreak('local_player');
+                    setStreakCount(data.streakCount || 0);
+                    setCompletedDays(data.completedDays || 0);
+
+                    // 2. Fetch profile data (name, level, coins, image)
+                    const profileRes = await executeSql(
+                        'SELECT name, level, coins, image FROM profiles WHERE id = ?;',
+                        ['local_player']
+                    );
+                    if (profileRes && profileRes.rows && profileRes.rows.length > 0) {
+                        const item = profileRes.rows.item(0);
+                        setUserProfile({
+                            name: item.name || 'Player',
+                            level: item.level || 1,
+                            coins: item.coins !== undefined ? item.coins : 100,
+                            image: item.image || null,
+                        });
+                    }
+                } catch (err) {
+                    console.error('Error fetching home data:', err);
+                }
+            };
+            loadHomeData();
+        }, [])
+    );
 
     const handlePlayGame = (game) => {
         navigation.navigate('SelectLevel', {
@@ -101,6 +122,8 @@ export default function Home({ navigation }) {
     const handleStreakPress = () => {
         navigation.navigate('WeeklyStreakDetail');
     };
+
+    const displayName = userProfile.name ? userProfile.name.split(' ')[0] : 'Player';
 
     return (
         <View style={[styles.screen, { paddingTop: Math.max(insets.top, 14) }]}>
@@ -121,7 +144,7 @@ export default function Home({ navigation }) {
                             style={styles.avatarWrap}
                         >
                             <Image
-                                source={images.person}
+                                source={userProfile.image ? { uri: userProfile.image } : images.person}
                                 style={styles.avatarImage}
                                 resizeMode="cover"
                             />
@@ -134,14 +157,14 @@ export default function Home({ navigation }) {
                     {/* Level & Coins Badge */}
                     <View style={styles.levelBadge}>
                         <Text style={styles.levelBadgeText}>
-                            Lv. 24 • 1,250 <Text style={styles.coinEmoji}>🪙</Text>
+                            Lv. {userProfile.level} • {userProfile.coins} <Text style={styles.coinEmoji}>🪙</Text>
                         </Text>
                     </View>
                 </View>
 
                 {/* 2. Welcome Greeting & Screen Title */}
                 <View style={styles.greetingSection}>
-                    <Text style={styles.welcomeText}>Welcome back, Alex 👋</Text>
+                    <Text style={styles.welcomeText}>Welcome back, {displayName} 👋</Text>
                     <Text style={styles.pageTitle}>Pick Your Challenge</Text>
                 </View>
 
@@ -158,15 +181,17 @@ export default function Home({ navigation }) {
                         {/* 7 Day Streak Tag */}
                         <View style={styles.streakTagRow}>
                             <Text style={styles.streakFireIcon}>🔥</Text>
-                            <Text style={styles.streakTagText}>7 DAY STREAK</Text>
+                            <Text style={styles.streakTagText}>
+                                {streakCount >= 7 ? `${streakCount} DAY STREAK` : `DAY ${completedDays}/7 STREAK`}
+                            </Text>
                         </View>
 
                         {/* Brain Score Title */}
-                        <Text style={styles.heroScoreTitle}>Brain Score 1,420</Text>
+                        <Text style={styles.heroScoreTitle}>Brain Score {1400 + streakCount * 50}</Text>
 
                         {/* Subtitle */}
                         <Text style={styles.heroSubtitle}>
-                            Top 5% cognitive speed this week
+                            {completedDays === 7 ? '7-day streak completed! Bonus unlocked!' : 'Complete 1 level daily to keep your streak'}
                         </Text>
                     </View>
 
@@ -179,7 +204,7 @@ export default function Home({ navigation }) {
                 {/* 4. Featured Games Header Row */}
                 <View style={styles.sectionHeaderRow}>
                     <Text style={styles.sectionTitle}>Featured Games</Text>
-                    <Text style={styles.sectionBadge}>6 Ready to Play</Text>
+                    <Text style={styles.sectionBadge}>{featuredGames.length} Ready to Play</Text>
                 </View>
 
                 {/* 5. 2-Column Games Grid */}

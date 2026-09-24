@@ -67,7 +67,7 @@ export default function SelectLevel({ navigation, route }) {
         message: '',
     });
 
-    const gameId = gameTitle === 'Color Match' ? '2' : '1';
+    const gameId = gameTitle === 'Color Match' ? '2' : (gameTitle === 'Math Quiz' || gameTitle === 'Maths Challenge') ? '3' : '1';
 
     // Fetch player progress from SQLite whenever screen comes into focus
     useFocusEffect(
@@ -237,6 +237,8 @@ export default function SelectLevel({ navigation, route }) {
 
         if (gameTitle === 'Color Match') {
             navigation.navigate('ColorMatchDetail', { level: selectedLevel, game: gameTitle });
+        } else if (gameTitle === 'Math Quiz' || gameTitle === 'Maths Challenge') {
+            navigation.navigate('MathQuizDetail', { level: selectedLevel, game: gameTitle });
         } else {
             navigation.navigate('WordPuzzleScreen', { level: selectedLevel, game: gameTitle });
         }
@@ -248,6 +250,8 @@ export default function SelectLevel({ navigation, route }) {
             setSelectedLevel(20);
             if (gameTitle === 'Color Match') {
                 navigation.navigate('ColorMatchScreen', { level: 20, game: gameTitle });
+            } else if (gameTitle === 'Math Quiz' || gameTitle === 'Maths Challenge') {
+                navigation.navigate('MathQuizScreen', { level: 20, game: gameTitle });
             } else {
                 navigation.navigate('WordPuzzleScreen', { level: 20, game: gameTitle });
             }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -9,9 +9,12 @@ import {
     Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import colors from '../../constants/colour';
 import fonts from '../../constants/fonts';
 import images from '../../constants/images';
+import streakRepository from '../../database/repositories/streakRepository';
+import { executeSql } from '../../database/database';
 
 // Custom Components
 import UserProfileCard from '../../components/UserProfileCard';
@@ -19,6 +22,55 @@ import WeeklyStreakCard from '../../components/WeeklyStreakCard';
 
 export default function Profile({ navigation }) {
     const insets = useSafeAreaInsets();
+
+    const [userProfile, setUserProfile] = useState({
+        name: 'BrainPlayer',
+        level: 1,
+        coins: 100,
+    });
+
+    const [streakData, setStreakData] = useState({
+        completedDays: 0,
+        totalDays: 7,
+        days: [
+            { day: 'M', status: 'Locked' },
+            { day: 'T', status: 'Locked' },
+            { day: 'W', status: 'Locked' },
+            { day: 'T', status: 'Locked' },
+            { day: 'F', status: 'Locked' },
+            { day: 'S', status: 'Locked' },
+            { day: 'S', status: 'Locked' },
+        ],
+    });
+
+    // Fetch live SQLite streak & profile data on focus
+    useFocusEffect(
+        useCallback(() => {
+            const loadData = async () => {
+                try {
+                    // Load streak
+                    const sData = await streakRepository.getWeeklyStreak('local_player');
+                    if (sData) {
+                        setStreakData(sData);
+                    }
+
+                    // Load user profile
+                    const pRes = await executeSql('SELECT * FROM profiles WHERE id = ?;', ['local_player']);
+                    if (pRes && pRes.rows && pRes.rows.length > 0) {
+                        const item = pRes.rows.item(0);
+                        setUserProfile({
+                            name: item.name || 'BrainPlayer',
+                            level: item.level || 1,
+                            coins: item.coins !== undefined ? item.coins : 100,
+                        });
+                    }
+                } catch (err) {
+                    console.error('Error fetching profile or streak data:', err);
+                }
+            };
+            loadData();
+        }, [])
+    );
 
     const handleSettingsPress = () => {
         navigation.navigate('Settings');
@@ -36,20 +88,16 @@ export default function Profile({ navigation }) {
             >
                 {/* Header */}
                 <View style={styles.header}>
-
                     <Text style={styles.headerTitle}>BrainPlay</Text>
                     <View style={styles.levelPill}>
-                        <Text style={styles.levelText}>Lv. 24 • 1,250 🪙</Text>
+                        <Text style={styles.levelText}>Lv. {userProfile.level} • {userProfile.coins} 🪙</Text>
                     </View>
                 </View>
 
                 {/* Main Profile Card (Custom Component) */}
                 <UserProfileCard
-                    name="Alex Rivet"
-                    // role="Master of Logic • Member since June '23"
-                    level={24}
-                    // currentXp={2450}
-                    // maxXp={3000}
+                    name={userProfile.name}
+                    level={userProfile.level}
                     avatarSource={images.person}
                 />
 
@@ -66,18 +114,10 @@ export default function Profile({ navigation }) {
                 {/* Weekly Streak Card (Custom Component) */}
                 <WeeklyStreakCard
                     title="Weekly Streak"
-                    completedDays={4}
-                    totalDays={7}
+                    completedDays={streakData.completedDays}
+                    totalDays={streakData.totalDays || 7}
                     onPress={() => navigation.navigate('WeeklyStreakDetail')}
-                    days={[
-                        { day: 'M', status: 'Done' },
-                        { day: 'T', status: 'Done' },
-                        { day: 'W', status: 'Done' },
-                        { day: 'T', status: 'Done' },
-                        { day: 'F', status: 'Next' },
-                        { day: 'S', status: 'Locked' },
-                        { day: 'S', status: 'Locked' },
-                    ]}
+                    days={streakData.days}
                 />
 
                 {/* Share Progress Button */}

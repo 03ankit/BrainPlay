@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -6,15 +6,49 @@ import {
     ScrollView,
     Image,
     TouchableOpacity,
-    Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import colors from '../../constants/colour';
 import fonts from '../../constants/fonts';
 import images from '../../constants/images';
+import streakRepository from '../../database/repositories/streakRepository';
 
 export default function WeeklyStreakDetail({ onBack, navigation }) {
     const insets = useSafeAreaInsets();
+
+    const [streakData, setStreakData] = useState({
+        streakCount: 1,
+        cycleDay: 1,
+        completedDays: 0,
+        totalDays: 7,
+        isCompletedToday: false,
+        days: [
+            { day: 'Mon', num: '1', status: 'current', activeDot: true },
+            { day: 'Tue', num: '2', status: 'locked' },
+            { day: 'Wed', num: '3', status: 'locked' },
+            { day: 'Thu', num: '4', status: 'locked' },
+            { day: 'Fri', num: '5', status: 'locked' },
+            { day: 'Sat', num: '6', status: 'locked' },
+            { day: 'Sun', num: '7', status: 'locked' },
+        ],
+        progressPercentage: 0,
+    });
+
+    // Fetch live SQLite streak data on focus
+    useFocusEffect(
+        useCallback(() => {
+            const loadStreak = async () => {
+                try {
+                    const data = await streakRepository.getWeeklyStreak('local_player');
+                    setStreakData(data);
+                } catch (err) {
+                    console.error('Error fetching weekly streak:', err);
+                }
+            };
+            loadStreak();
+        }, [])
+    );
 
     const handleBackPress = () => {
         if (onBack) {
@@ -24,15 +58,21 @@ export default function WeeklyStreakDetail({ onBack, navigation }) {
         }
     };
 
-    const daysData = [
-        { day: 'Mon', num: '1', status: 'completed' },
-        { day: 'Tue', num: '2', status: 'completed' },
-        { day: 'Wed', num: '3', status: 'completed' },
-        { day: 'Thu', num: '4', status: 'current', activeDot: true },
-        { day: 'Fri', num: '5', status: 'locked' },
-        { day: 'Sat', num: '6', status: 'locked' },
-        { day: 'Sun', num: '7', status: 'locked' },
-    ];
+    const handlePlayNow = () => {
+        if (navigation) {
+            navigation.navigate('BottomNavigation', { screen: 'Games' });
+        }
+    };
+
+    const { streakCount, completedDays, totalDays, isCompletedToday, days } = streakData;
+
+    // Calculate dynamic circular progress angle (clockwise from 12 o'clock)
+    const progress = Math.max(0, Math.min(1, totalDays > 0 ? completedDays / totalDays : 0));
+    const angle = progress * 360;
+
+    // Rotation angles for 2-half clipped progress segments
+    const rightRotate = Math.min(angle, 180) - 225;
+    const leftRotate = Math.max(0, angle - 180) - 135;
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -56,25 +96,57 @@ export default function WeeklyStreakDetail({ onBack, navigation }) {
                 {/* Top Weekly Streak Card */}
                 <View style={styles.streakBannerCard}>
                     <Text style={styles.streakBannerTitle}>Weekly Streak</Text>
-                    <Text style={styles.streakBannerSubtitle}>Keep it going to earn rewards!</Text>
+                    <Text style={styles.streakBannerSubtitle}>
+                        Complete 1 level daily for 7 days to earn rewards!
+                    </Text>
 
                     {/* Circular Progress Display */}
                     <View style={styles.circleContainer}>
                         <View style={styles.outerProgressCircle}>
+                            {/* Background Ring Track */}
+                            <View style={styles.trackCircle} />
+
+                            {/* Right Half Circular Ring Progress Segment (0 - 180 deg) */}
+                            <View style={styles.rightHalfContainer}>
+                                <View
+                                    style={[
+                                        styles.rightRingSegment,
+                                        {
+                                            transform: [{ rotate: `${rightRotate}deg` }],
+                                        },
+                                    ]}
+                                />
+                            </View>
+
+                            {/* Left Half Circular Ring Progress Segment (180 - 360 deg) */}
+                            <View style={styles.leftHalfContainer}>
+                                <View
+                                    style={[
+                                        styles.leftRingSegment,
+                                        {
+                                            transform: [{ rotate: `${leftRotate}deg` }],
+                                        },
+                                    ]}
+                                />
+                            </View>
+
+                            {/* Center Days Count */}
                             <View style={styles.innerProgressCircle}>
-                                <Text style={styles.circleDayCount}>4</Text>
+                                <Text style={styles.circleDayCount}>{completedDays}</Text>
                                 <Text style={styles.circleDayLabel}>DAYS</Text>
                             </View>
                         </View>
                     </View>
 
-                    <Text style={styles.streakDayText}>Day 4 of 7</Text>
+                    <Text style={styles.streakDayText}>
+                        Day {completedDays} of {totalDays}
+                    </Text>
                 </View>
 
                 {/* Days Horizontal Status Selector */}
                 <View style={styles.daysRowContainer}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.daysScroll}>
-                        {daysData.map((item, index) => {
+                        {days.map((item, index) => {
                             const isCurrent = item.status === 'current';
                             const isCompleted = item.status === 'completed';
                             const isLocked = item.status === 'locked';
@@ -118,29 +190,46 @@ export default function WeeklyStreakDetail({ onBack, navigation }) {
                     <View style={styles.taskBadge}>
                         <Text style={styles.taskBadgeText}>TODAY'S TASK</Text>
                     </View>
-                    <Text style={styles.taskTitle}>Complete 3 Math Quizzes</Text>
+                    <Text style={styles.taskTitle}>
+                        {isCompletedToday ? 'Daily Goal Achieved! 🎉' : 'Complete 1 Game Level'}
+                    </Text>
                     <Text style={styles.taskSubtitle}>
-                        Keep your brain sharp and your streak alive.
+                        {isCompletedToday
+                            ? 'Great job! You kept your streak alive today. Come back tomorrow!'
+                            : 'Play any game (Word Jumble, Color Match, Math Quiz) to keep your streak!'}
                     </Text>
 
                     <View style={styles.taskProgressBarTrack}>
-                        <View style={[styles.taskProgressBarFill, { width: '33%' }]} />
+                        <View
+                            style={[
+                                styles.taskProgressBarFill,
+                                { width: isCompletedToday ? '100%' : '0%' },
+                            ]}
+                        />
                     </View>
 
                     <View style={styles.taskFooterRow}>
-                        <Text style={styles.taskProgressText}>1/3 Completed</Text>
-                        <TouchableOpacity
-                            activeOpacity={0.7}
-                            onPress={() => Alert.alert("Play Now", "Navigating to Math Quizzes...")}
-                        >
-                            <Text style={styles.playNowText}>Play Now</Text>
-                        </TouchableOpacity>
+                        <Text style={styles.taskProgressText}>
+                            {isCompletedToday ? '1/1 Completed (Done)' : '0/1 Completed'}
+                        </Text>
+                        {!isCompletedToday && (
+                            <TouchableOpacity
+                                activeOpacity={0.7}
+                                onPress={handlePlayNow}
+                            >
+                                <Text style={styles.playNowText}>Play Now ▶</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
             </ScrollView>
         </View>
     );
 }
+
+const CIRCLE_SIZE = 170;
+const RADIUS = CIRCLE_SIZE / 2;
+const BORDER_WIDTH = 10;
 
 const styles = StyleSheet.create({
     container: {
@@ -192,10 +281,11 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     streakBannerSubtitle: {
-        fontSize: 14,
+        fontSize: 13.5,
         fontFamily: fonts.medium || 'Poppins-Medium',
         color: '#64748B',
         marginBottom: 20,
+        textAlign: 'center',
     },
     circleContainer: {
         alignItems: 'center',
@@ -203,27 +293,71 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     outerProgressCircle: {
-        width: 170,
-        height: 170,
-        borderRadius: 85,
-        borderWidth: 10,
-        borderColor: '#EFF6FF',
-        borderTopColor: colors.primary,
-        borderRightColor: colors.primary,
-        borderLeftColor: colors.primary,
-        justifyContent: 'center',
+        width: CIRCLE_SIZE,
+        height: CIRCLE_SIZE,
+        borderRadius: RADIUS,
         alignItems: 'center',
-        transform: [{ rotate: '-45deg' }],
+        justifyContent: 'center',
+        position: 'relative',
+    },
+    trackCircle: {
+        position: 'absolute',
+        width: CIRCLE_SIZE,
+        height: CIRCLE_SIZE,
+        borderRadius: RADIUS,
+        borderWidth: BORDER_WIDTH,
+        borderColor: '#EFF6FF',
+    },
+    rightHalfContainer: {
+        position: 'absolute',
+        top: 0,
+        left: RADIUS,
+        width: RADIUS,
+        height: CIRCLE_SIZE,
+        overflow: 'hidden',
+    },
+    leftHalfContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: RADIUS,
+        height: CIRCLE_SIZE,
+        overflow: 'hidden',
+    },
+    rightRingSegment: {
+        position: 'absolute',
+        top: 0,
+        left: -RADIUS,
+        width: CIRCLE_SIZE,
+        height: CIRCLE_SIZE,
+        borderRadius: RADIUS,
+        borderWidth: BORDER_WIDTH,
+        borderColor: 'transparent',
+        borderBottomColor: colors.primary || '#2563EB',
+        borderRightColor: colors.primary || '#2563EB',
+    },
+    leftRingSegment: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: CIRCLE_SIZE,
+        height: CIRCLE_SIZE,
+        borderRadius: RADIUS,
+        borderWidth: BORDER_WIDTH,
+        borderColor: 'transparent',
+        borderBottomColor: colors.primary || '#2563EB',
+        borderLeftColor: colors.primary || '#2563EB',
     },
     innerProgressCircle: {
-        transform: [{ rotate: '45deg' }],
         alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10,
     },
     circleDayCount: {
         fontSize: 48,
         fontFamily: fonts.bold || 'Poppins-Bold',
         fontWeight: 'bold',
-        color: colors.primary,
+        color: colors.primary || '#2563EB',
         lineHeight: 52,
     },
     circleDayLabel: {
@@ -237,7 +371,7 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontFamily: fonts.bold || 'Poppins-Bold',
         fontWeight: 'bold',
-        color: colors.primary,
+        color: colors.primary || '#2563EB',
     },
     // Days Selector
     daysRowContainer: {
@@ -282,14 +416,11 @@ const styles = StyleSheet.create({
     dayNumberCompletedText: {
         color: colors.primary,
     },
-    // lockIcon: {
-    //     fontSize: 16,
-    // },
     lockIconImage: {
-        width: 24,
-        height: 24,
+        width: 20,
+        height: 20,
         resizeMode: 'contain',
-        tintColor: colors.primary,
+        tintColor: '#94A3B8',
     },
     activeNotificationDot: {
         position: 'absolute',
@@ -323,7 +454,7 @@ const styles = StyleSheet.create({
     },
     taskBadge: {
         alignSelf: 'flex-start',
-        backgroundColor: '#FEE2E2',
+        backgroundColor: '#EFF6FF',
         paddingHorizontal: 12,
         paddingVertical: 4,
         borderRadius: 12,
@@ -333,7 +464,7 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontFamily: fonts.bold || 'Poppins-Bold',
         fontWeight: 'bold',
-        color: '#EF4444',
+        color: colors.primary,
         letterSpacing: 0.5,
     },
     taskTitle: {
@@ -376,87 +507,5 @@ const styles = StyleSheet.create({
         fontFamily: fonts.bold || 'Poppins-Bold',
         fontWeight: 'bold',
         color: colors.primary,
-    },
-    // Reward Card
-    rewardCard: {
-        backgroundColor: '#EFF6FF',
-        borderRadius: 20,
-        padding: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    rewardIconBadge: {
-        width: 48,
-        height: 48,
-        borderRadius: 16,
-        backgroundColor: '#EF4444',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 14,
-    },
-    rewardIconText: {
-        fontSize: 24,
-    },
-    rewardTextContainer: {
-        flex: 1,
-    },
-    rewardBadgeLabel: {
-        fontSize: 11,
-        fontFamily: fonts.bold || 'Poppins-Bold',
-        fontWeight: 'bold',
-        color: '#64748B',
-        letterSpacing: 0.5,
-        marginBottom: 2,
-    },
-    rewardTitle: {
-        fontSize: 16,
-        fontFamily: fonts.bold || 'Poppins-Bold',
-        fontWeight: 'bold',
-        color: '#1E293B',
-    },
-    rewardSubtitle: {
-        fontSize: 12,
-        fontFamily: fonts.medium || 'Poppins-Medium',
-        color: '#64748B',
-    },
-    // Reminder Card
-    reminderCard: {
-        backgroundColor: colors.white,
-        borderRadius: 20,
-        padding: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.04,
-        shadowRadius: 10,
-    },
-    reminderIconBadge: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
-        backgroundColor: '#F1F5F9',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 14,
-    },
-    bellIconText: {
-        fontSize: 18,
-    },
-    reminderTextContainer: {
-        flex: 1,
-    },
-    reminderTitle: {
-        fontSize: 15,
-        fontFamily: fonts.bold || 'Poppins-Bold',
-        fontWeight: 'bold',
-        color: '#1E293B',
-    },
-    reminderSubtitle: {
-        fontSize: 12,
-        fontFamily: fonts.medium || 'Poppins-Medium',
-        color: '#64748B',
     },
 });

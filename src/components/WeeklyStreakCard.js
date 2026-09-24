@@ -35,8 +35,12 @@ export default function WeeklyStreakCard({
                 {/* Days Row */}
                 <View style={styles.daysRow}>
                     {days.map((item, index) => {
-                        const isDone = item.status === 'Done';
-                        const isNext = item.status === 'Next';
+                        const statusLower = (item.status || '').toLowerCase();
+                        const isDone = statusLower === 'done' || statusLower === 'completed';
+                        const isNext = statusLower === 'next' || statusLower === 'current';
+
+                        const dayLetter = item.day ? item.day.charAt(0).toUpperCase() : `${index + 1}`;
+                        const displayStatus = isDone ? 'Done' : isNext ? 'Today' : 'Locked';
 
                         return (
                             <View key={index} style={styles.dayColumn}>
@@ -44,7 +48,7 @@ export default function WeeklyStreakCard({
                                     style={[
                                         styles.dayCircle,
                                         isDone && styles.doneCircle,
-                                        (isNext || item.status === 'Locked') && styles.defaultCircle,
+                                        !isDone && styles.defaultCircle,
                                     ]}
                                 >
                                     <Text
@@ -53,10 +57,10 @@ export default function WeeklyStreakCard({
                                             isDone ? styles.doneLetter : styles.defaultLetter,
                                         ]}
                                     >
-                                        {item.day}
+                                        {dayLetter}
                                     </Text>
                                 </View>
-                                <Text style={styles.statusText}>{item.status}</Text>
+                                <Text style={styles.statusText}>{displayStatus}</Text>
                             </View>
                         );
                     })}

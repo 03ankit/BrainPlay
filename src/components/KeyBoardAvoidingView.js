@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, forwardRef } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -8,55 +8,61 @@ import {
   StyleSheet,
 } from 'react-native';
 
-const KeyboardScrollWrapper = ({
-  children,
-  containerStyle,
-  contentContainerStyle,
-  statusBarColor = 'transparent',
-  barStyle = 'dark-content',
-  screensEnabled = true,
-  ref,
-}) => {
-  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+const KeyboardScrollWrapper = forwardRef(function KeyboardScrollWrapper(
+  {
+    children,
+    containerStyle,
+    contentContainerStyle,
+    statusBarColor = 'transparent',
+    barStyle = 'dark-content',
+    screensEnabled = true,
+  },
+  ref
+) {
+  const [keyboardPadding, setKeyboardPadding] = useState(0);
+  const internalRef = useRef(null);
+  const scrollRef = ref || internalRef;
 
   useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
-      () => {
-        setKeyboardVisible(true);
-      },
-    );
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
-    const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
-      () => {
-        setKeyboardVisible(false);
-      },
-    );
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      const height = e?.endCoordinates?.height || 0;
+      if (Platform.OS === 'android' && height > 0) {
+        setKeyboardPadding(height + 24);
+      }
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      if (Platform.OS === 'android') {
+        setKeyboardPadding(0);
+      }
+    });
 
     return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
+      showSub.remove();
+      hideSub.remove();
     };
   }, []);
 
   return (
     <KeyboardAvoidingView
       style={[styles.container, containerStyle]}
-      behavior={
-        Platform.OS === 'ios'
-          ? 'padding'
-          : isKeyboardVisible
-          ? 'height'
-          : undefined
-      }
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <ScrollView
-        ref={ref}
+        ref={scrollRef}
         bounces={false}
         overScrollMode="never"
-        contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          contentContainerStyle,
+          Platform.OS === 'android' && keyboardPadding > 0
+            ? { paddingBottom: keyboardPadding }
+            : null,
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         scrollEnabled={screensEnabled}
@@ -71,7 +77,7 @@ const KeyboardScrollWrapper = ({
       </ScrollView>
     </KeyboardAvoidingView>
   );
-};
+});
 
 export default KeyboardScrollWrapper;
 

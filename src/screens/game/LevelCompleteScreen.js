@@ -32,7 +32,7 @@ export default function LevelCompleteScreen({ navigation, route }) {
     const [showStarModal, setShowStarModal] = useState(false);
     const [world1Stars, setWorld1Stars] = useState(0);
 
-    const gameId = gameTitle === 'Color Match' ? '2' : '1';
+    const gameId = gameTitle === 'Color Match' ? '2' : (gameTitle === 'Math Quiz' || gameTitle === 'Maths Challenge') ? '3' : '1';
 
     // Calculate World 1 (levels 1-5) total stars
     const fetchWorld1Stars = useCallback(async () => {
@@ -72,7 +72,11 @@ export default function LevelCompleteScreen({ navigation, route }) {
             }
         }
 
-        const targetGameScreen = gameTitle === 'Color Match' ? 'ColorMatchScreen' : 'WordPuzzleScreen';
+        const targetGameScreen = gameTitle === 'Color Match'
+            ? 'ColorMatchScreen'
+            : (gameTitle === 'Math Quiz' || gameTitle === 'Maths Challenge')
+            ? 'MathQuizScreen'
+            : 'WordPuzzleScreen';
 
         navigation.reset({
             index: 2,
