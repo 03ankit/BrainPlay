@@ -12,7 +12,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import colors from '../../constants/colour';
 import fonts from '../../constants/fonts';
 import images from '../../constants/images';
-import streakRepository from '../../database/repositories/streakRepository';
+import streakRepository, { STREAK_TIERS, getStreakTier } from '../../database/repositories/streakRepository';
 
 export default function WeeklyStreakDetail({ onBack, navigation }) {
     const insets = useSafeAreaInsets();
@@ -65,6 +65,7 @@ export default function WeeklyStreakDetail({ onBack, navigation }) {
     };
 
     const { streakCount, completedDays, totalDays, isCompletedToday, days } = streakData;
+    const currentTier = streakRepository.getStreakTier(streakCount);
 
     // Calculate dynamic circular progress angle (clockwise from 12 o'clock)
     const progress = Math.max(0, Math.min(1, totalDays > 0 ? completedDays / totalDays : 0));
@@ -95,7 +96,10 @@ export default function WeeklyStreakDetail({ onBack, navigation }) {
 
                 {/* Top Weekly Streak Card */}
                 <View style={styles.streakBannerCard}>
-                    <Text style={styles.streakBannerTitle}>Weekly Streak</Text>
+                    <View style={styles.streakBannerHeaderRow}>
+                        <Image source={images.fire} style={styles.streakBannerFireIcon} resizeMode="contain" />
+                        <Text style={styles.streakBannerTitle}>Weekly Streak</Text>
+                    </View>
                     <Text style={styles.streakBannerSubtitle}>
                         Complete 1 level daily for 7 days to earn rewards!
                     </Text>
@@ -216,11 +220,98 @@ export default function WeeklyStreakDetail({ onBack, navigation }) {
                             <TouchableOpacity
                                 activeOpacity={0.7}
                                 onPress={handlePlayNow}
+                                style={styles.playNowBtn}
                             >
-                                <Text style={styles.playNowText}>Play Now ▶</Text>
+                                <Text style={styles.playNowText}>Play Now</Text>
+                                <Image source={images.play} style={styles.playNowIcon} resizeMode="contain" />
                             </TouchableOpacity>
                         )}
                     </View>
+                </View>
+
+                {/* 4. Streak Badges & Ranks League */}
+                <View style={styles.leagueCard}>
+                    <View style={styles.leagueHeaderRow}>
+                        <View>
+                            <Text style={styles.leagueSectionTitle}>Streak Ranks</Text>
+                            <Text style={styles.leagueSectionSubtitle}>
+                                Rank 3 → 2 → 1 in each tier (7 days per rank)
+                            </Text>
+                        </View>
+                        <View style={[styles.currentTierPill, { backgroundColor: currentTier.color + '22' }]}>
+                            <Text style={[styles.currentTierPillText, { color: currentTier.color }]}>
+                                {currentTier.title}
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Horizontal Scroll of Badges */}
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.tiersScrollContent}
+                    >
+                        {STREAK_TIERS.map((tierItem) => {
+                            const isUnlocked = streakCount >= tierItem.minDays;
+                            const isCurrent = currentTier.tierId === tierItem.id;
+                            const badgeImg = images[tierItem.badgeKey];
+
+                            return (
+                                <View
+                                    key={tierItem.id}
+                                    style={[
+                                        styles.tierBadgeCard,
+                                        isCurrent && styles.tierBadgeCardActive,
+                                        !isUnlocked && styles.tierBadgeCardLocked,
+                                    ]}
+                                >
+                                    {isCurrent && (
+                                        <View style={styles.currentBadgeTag}>
+                                            <Text style={styles.currentBadgeTagText}>{currentTier.division}</Text>
+                                        </View>
+                                    )}
+
+                                    <View style={styles.badgeImageWrapper}>
+                                        <Image
+                                            source={badgeImg}
+                                            style={[
+                                                styles.tierBadgeImage,
+                                                !isUnlocked && styles.tierBadgeImageLocked,
+                                            ]}
+                                            resizeMode="contain"
+                                        />
+                                        {!isUnlocked && (
+                                            <View style={styles.lockOverlay}>
+                                                <Image source={images.lock} style={styles.tierLockIcon} resizeMode="contain" />
+                                            </View>
+                                        )}
+                                    </View>
+
+                                    <Text style={[styles.tierItemName, isCurrent && { color: tierItem.color }]}>
+                                        {tierItem.name}
+                                    </Text>
+                                    
+                                    {/* Division Pills */}
+                                    <View style={styles.divisionPillsRow}>
+                                        {tierItem.divisions.map((div) => {
+                                            const isDivActive = isCurrent && currentTier.division === div;
+                                            return (
+                                                <Text
+                                                    key={div}
+                                                    style={[
+                                                        styles.divisionPillText,
+                                                        isDivActive && { color: tierItem.color, fontWeight: 'bold' },
+                                                    ]}
+                                                >
+                                                    {div}
+                                                </Text>
+                                            );
+                                        })}
+                                    </View>
+                                </View>
+                            );
+                        })}
+                    </ScrollView>
                 </View>
             </ScrollView>
         </View>
@@ -502,10 +593,173 @@ const styles = StyleSheet.create({
         fontFamily: fonts.medium || 'Poppins-Medium',
         color: '#64748B',
     },
+    streakBannerHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginBottom: 6,
+    },
+    streakBannerFireIcon: {
+        width: 24,
+        height: 24,
+    },
+    playNowBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    playNowIcon: {
+        width: 12,
+        height: 12,
+        tintColor: colors.primary,
+    },
     playNowText: {
         fontSize: 13,
         fontFamily: fonts.bold || 'Poppins-Bold',
         fontWeight: 'bold',
         color: colors.primary,
+    },
+
+    // 4. Streak Badges & Ranks League
+    leagueCard: {
+        backgroundColor: colors.white,
+        borderRadius: 24,
+        padding: 20,
+        marginBottom: 20,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+    },
+    leagueHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    leagueSectionTitle: {
+        fontSize: 18,
+        fontFamily: fonts.bold || 'Poppins-Bold',
+        fontWeight: 'bold',
+        color: '#1E293B',
+        marginBottom: 2,
+    },
+    leagueSectionSubtitle: {
+        fontSize: 12,
+        fontFamily: fonts.medium || 'Poppins-Medium',
+        color: '#64748B',
+    },
+    currentTierPill: {
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 12,
+    },
+    currentTierPillText: {
+        fontSize: 12,
+        fontFamily: fonts.bold || 'Poppins-Bold',
+        fontWeight: 'bold',
+    },
+    tiersScrollContent: {
+        paddingVertical: 4,
+        gap: 12,
+    },
+    tierBadgeCard: {
+        width: 86,
+        paddingVertical: 12,
+        paddingHorizontal: 6,
+        borderRadius: 16,
+        backgroundColor: '#F8FAFC',
+        borderWidth: 1.5,
+        borderColor: '#E2E8F0',
+        alignItems: 'center',
+        position: 'relative',
+    },
+    tierBadgeCardActive: {
+        borderColor: colors.primary,
+        backgroundColor: '#EEF2FF',
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.18,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    tierBadgeCardLocked: {
+        opacity: 0.7,
+        backgroundColor: '#F1F5F9',
+    },
+    currentBadgeTag: {
+        position: 'absolute',
+        top: -8,
+        backgroundColor: colors.primary,
+        paddingHorizontal: 6,
+        paddingVertical: 1.5,
+        borderRadius: 6,
+    },
+    currentBadgeTagText: {
+        color: colors.white,
+        fontSize: 8,
+        fontFamily: fonts.bold || 'Poppins-Bold',
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
+    },
+    badgeImageWrapper: {
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 6,
+        marginTop: 2,
+        position: 'relative',
+    },
+    tierBadgeImage: {
+        width: 42,
+        height: 42,
+    },
+    tierBadgeImageLocked: {
+        opacity: 0.35,
+    },
+    lockOverlay: {
+        position: 'absolute',
+        bottom: -2,
+        right: -2,
+        backgroundColor: '#64748B',
+        borderRadius: 8,
+        padding: 3,
+    },
+    tierLockIcon: {
+        width: 10,
+        height: 10,
+        tintColor: colors.white,
+    },
+    tierItemName: {
+        fontSize: 12,
+        fontFamily: fonts.bold || 'Poppins-Bold',
+        fontWeight: 'bold',
+        color: '#334155',
+        marginBottom: 2,
+        textAlign: 'center',
+    },
+    divisionPillsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 3,
+        marginTop: 2,
+    },
+    divisionPillText: {
+        fontSize: 9.5,
+        fontFamily: fonts.bold || 'Poppins-Bold',
+        color: '#94A3B8',
+        backgroundColor: '#F1F5F9',
+        paddingHorizontal: 3,
+        paddingVertical: 1,
+        borderRadius: 4,
+    },
+    tierItemDays: {
+        fontSize: 10,
+        fontFamily: fonts.medium || 'Poppins-Medium',
+        color: '#64748B',
     },
 });

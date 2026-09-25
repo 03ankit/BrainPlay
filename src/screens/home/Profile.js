@@ -99,6 +99,7 @@ export default function Profile({ navigation }) {
                     name={userProfile.name}
                     level={userProfile.level}
                     avatarSource={images.person}
+                    tier={streakData?.tier}
                 />
 
                 {/* Settings Button */}

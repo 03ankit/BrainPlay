@@ -26,6 +26,18 @@ export const images = {
     trophy: require('../assets/image/trophy.png'),
     reload: require('../assets/image/reload.png'),
     close: require('../assets/image/close.png'),
+    fire: require('../assets/image/burn.png'),
+    chart: require('../assets/image/chart.png'),
+    play: require('../assets/image/play.png'),
+    bronze: require('../assets/image/bronze.png'),
+    silver: require('../assets/image/silver.png'),
+    gold: require('../assets/image/gold.png'),
+    diamond: require('../assets/image/diamond.png'),
+    crown: require('../assets/image/crown.png'),
+    immortal: require('../assets/image/Immortal.png'),
+    legend: require('../assets/image/legend.png'),
+
+
 };
 
 export default images;

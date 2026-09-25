@@ -22,7 +22,6 @@ import KeyBoardAvoidingView from '../../components/KeyBoardAvoidingView';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { AuthContext } from '../../context/AuthContext';
 import { executeSql } from '../../database/database';
-import { supabase, upsertProfile } from '../../services/supabaseClient';
 
 export default function Profile({ route, navigation }) {
     const emailParam = route?.params?.email;
@@ -53,7 +52,7 @@ export default function Profile({ route, navigation }) {
 
     const handleGetStarted = async () => {
         try {
-            // 1. Save locally to SQLite profiles
+            // Save locally to SQLite profiles
             await executeSql(
                 `INSERT INTO profiles (id, name, email, phone_number, image, created_at, updated_at)
                  VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
@@ -65,51 +64,8 @@ export default function Profile({ route, navigation }) {
                  updated_at = datetime('now');`,
                 ['local_player', fullName || 'BrainPlayer', email || '', phoneNumber || '', avatarUri || null]
             );
-
-            // 2. Ensure Supabase Auth user & sync to Supabase public.profiles table
-            let currentUser = null;
-            try {
-                const userRes = await supabase.auth.getUser();
-                currentUser = userRes?.data?.user;
-            } catch {
-                currentUser = null;
-            }
-
-            if (!currentUser && email) {
-                const defaultAuthPass = 'BrainPlay_Default_User_Pass_2026!';
-                const { data: authData } = await supabase.auth.signUp({
-                    email: email,
-                    password: defaultAuthPass,
-                    options: {
-                        data: { name: fullName || 'BrainPlayer', phone: phoneNumber },
-                    },
-                });
-
-                if (authData?.user) {
-                    currentUser = authData.user;
-                } else {
-                    const { data: signInData } = await supabase.auth.signInWithPassword({
-                        email: email,
-                        password: defaultAuthPass,
-                    });
-                    if (signInData?.user) {
-                        currentUser = signInData.user;
-                    }
-                }
-            }
-
-            if (currentUser?.id) {
-                const supabaseRes = await upsertProfile({
-                    id: currentUser.id,
-                    email: email || currentUser.email || '',
-                    phone: phoneNumber || currentUser.phone || '',
-                    name: fullName || 'BrainPlayer',
-                    photo_url: avatarUri || null,
-                });
-                console.log('✅ Supabase profile saved to public.profiles:', supabaseRes);
-            }
         } catch (err) {
-            console.warn('Profile save/sync notice:', err?.message || err);
+            console.warn('Profile local save notice:', err?.message || err);
         }
 
         // Complete sign in and navigate to main tabs

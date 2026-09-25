@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import colors from '../constants/colour';
 import fonts from '../constants/fonts';
+import images from '../constants/images';
 
 const defaultDays = [
     { day: 'M', status: 'Done' },
@@ -26,7 +27,10 @@ export default function WeeklyStreakCard({
         <TouchableOpacity style={styles.container} activeOpacity={onPress ? 0.85 : 1} onPress={onPress}>
             {/* Section Header */}
             <View style={styles.headerRow}>
-                <Text style={styles.title}>{title}</Text>
+                <View style={styles.titleContainer}>
+                    <Image source={images.fire} style={styles.fireIcon} resizeMode="contain" />
+                    <Text style={styles.title}>{title}</Text>
+                </View>
                 <Text style={styles.streakCount}>{completedDays}/{totalDays} Days</Text>
             </View>
 
@@ -86,6 +90,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 14,
         paddingHorizontal: 4,
+    },
+    titleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    fireIcon: {
+        width: 20,
+        height: 20,
     },
     title: {
         fontSize: 20,

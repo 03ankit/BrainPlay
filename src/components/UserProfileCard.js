@@ -10,7 +10,8 @@ export default function UserProfileCard({
     level = 24,
     currentXp = 2450,
     maxXp = 3000,
-    avatarSource = images.person
+    avatarSource = images.person,
+    tier,
 }) {
     const xpPercentage = Math.min(Math.max((currentXp / maxXp) * 100, 0), 100);
 
@@ -28,7 +29,12 @@ export default function UserProfileCard({
 
             {/* User Info */}
             <Text style={styles.userName}>{name}</Text>
-            {/* <Text style={styles.userRole}>{role}</Text> */}
+            {tier && (
+                <View style={styles.tierPill}>
+                    <Image source={images[tier.badgeKey]} style={styles.tierPillIcon} resizeMode="contain" />
+                    <Text style={[styles.tierPillText, { color: tier.color }]}>{tier.name} Rank</Text>
+                </View>
+            )}
 
             {/* Progress Section */}
             <View style={styles.xpSection}>
@@ -106,6 +112,25 @@ const styles = StyleSheet.create({
         color: '#1E293B',
         marginBottom: 4,
         textAlign: 'center',
+    },
+    tierPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: '#F1F5F9',
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 20,
+        marginBottom: 8,
+    },
+    tierPillIcon: {
+        width: 18,
+        height: 18,
+    },
+    tierPillText: {
+        fontSize: 12,
+        fontFamily: fonts.bold || 'Poppins-Bold',
+        fontWeight: 'bold',
     },
     userRole: {
         fontSize: 13,

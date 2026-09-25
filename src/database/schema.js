@@ -1,4 +1,4 @@
-// Database Schema for BrainPlay & Supabase
+// Database Schema for BrainPlay Local Database
 
 export const TABLES = {
     PROFILES: 'profiles',
@@ -11,9 +11,9 @@ export const TABLES = {
 };
 
 export const SCHEMA = {
-    // Supabase User Profile
+    // User Profile
     profiles: {
-        id: 'string', // Supabase auth user UUID
+        id: 'string', // Local player ID
         name: 'string',
         email: 'string',
         phone_number: 'string',

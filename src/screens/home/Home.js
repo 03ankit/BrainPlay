@@ -124,6 +124,7 @@ export default function Home({ navigation }) {
     };
 
     const displayName = userProfile.name ? userProfile.name.split(' ')[0] : 'Player';
+    const currentTier = streakRepository.getStreakTier(streakCount);
 
     return (
         <View style={[styles.screen, { paddingTop: Math.max(insets.top, 14) }]}>
@@ -168,7 +169,7 @@ export default function Home({ navigation }) {
                     <Text style={styles.pageTitle}>Pick Your Challenge</Text>
                 </View>
 
-                {/* 3. Hero Streak / Brain Score Card (Royal Blue Theme) */}
+                {/* 3. Hero Streak / Rank Tier Card */}
                 <TouchableOpacity
                     style={styles.heroCard}
                     activeOpacity={0.9}
@@ -180,24 +181,30 @@ export default function Home({ navigation }) {
                     <View style={styles.heroLeft}>
                         {/* 7 Day Streak Tag */}
                         <View style={styles.streakTagRow}>
-                            <Text style={styles.streakFireIcon}>🔥</Text>
+                            <Image source={images.fire} style={styles.streakFireIcon} resizeMode="contain" />
                             <Text style={styles.streakTagText}>
                                 {streakCount >= 7 ? `${streakCount} DAY STREAK` : `DAY ${completedDays}/7 STREAK`}
                             </Text>
                         </View>
 
-                        {/* Brain Score Title */}
-                        <Text style={styles.heroScoreTitle}>Brain Score {1400 + streakCount * 50}</Text>
+                        {/* Rank Tier Title (Replaced Brain Score) */}
+                        <Text style={styles.heroScoreTitle}>{currentTier.title}</Text>
 
                         {/* Subtitle */}
                         <Text style={styles.heroSubtitle}>
-                            {completedDays === 7 ? '7-day streak completed! Bonus unlocked!' : 'Complete 1 level daily to keep your streak'}
+                            {currentTier.nextTier
+                                ? `${currentTier.daysToNext} day${currentTier.daysToNext === 1 ? '' : 's'} to unlock ${currentTier.nextTier.title}`
+                                : 'Grand Legend Champion Reached! 👑'}
                         </Text>
                     </View>
 
-                    {/* Right Icon Button */}
-                    <View style={styles.heroRightIconBox}>
-                        <Text style={styles.heroRightIcon}>📈</Text>
+                    {/* Right Badge Image Box */}
+                    <View style={styles.heroBadgeBox}>
+                        <Image
+                            source={images[currentTier.badgeKey]}
+                            style={styles.heroBadgeIcon}
+                            resizeMode="contain"
+                        />
                     </View>
                 </TouchableOpacity>
 
@@ -260,7 +267,7 @@ export default function Home({ navigation }) {
                                 activeOpacity={0.85}
                                 onPress={() => handlePlayGame(game)}
                             >
-                                <Text style={styles.cardPlayIcon}>▶</Text>
+                                <Image source={images.play} style={styles.cardPlayIcon} resizeMode="contain" />
                                 <Text style={styles.cardPlayText}>Play</Text>
                             </TouchableOpacity>
                         </TouchableOpacity>
@@ -392,7 +399,8 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     streakFireIcon: {
-        fontSize: 14,
+        width: 16,
+        height: 16,
     },
     streakTagText: {
         color: '#FDE047',
@@ -414,18 +422,20 @@ const styles = StyleSheet.create({
         fontSize: 12.5,
         fontFamily: fonts.medium,
     },
-    heroRightIconBox: {
-        width: 48,
-        height: 48,
-        borderRadius: 16,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderWidth: 1,
+    heroBadgeBox: {
+        width: 60,
+        height: 60,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255, 255, 255, 0.18)',
+        borderWidth: 1.5,
         borderColor: 'rgba(255, 255, 255, 0.35)',
         alignItems: 'center',
         justifyContent: 'center',
+        padding: 4,
     },
-    heroRightIcon: {
-        fontSize: 22,
+    heroBadgeIcon: {
+        width: 48,
+        height: 48,
     },
 
     // 4. Section Header
@@ -530,8 +540,9 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     cardPlayIcon: {
-        color: colors.white,
-        fontSize: 10,
+        width: 12,
+        height: 12,
+        tintColor: colors.white,
     },
     cardPlayText: {
         color: colors.white,
