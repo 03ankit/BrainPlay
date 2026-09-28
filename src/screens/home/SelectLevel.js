@@ -16,6 +16,7 @@ import fonts from '../../constants/fonts';
 import images from '../../constants/images';
 import { MapLevelNode, BossSummitCard } from '../../components/game/LevelCard';
 import progressRepository from '../../database/repositories/progressRepository';
+import playerRepository from '../../database/repositories/playerRepository';
 import StarRequirementModal from '../../components/game/StarRequirementModal';
 import LevelLockedModal from '../../components/game/LevelLockedModal';
 
@@ -55,8 +56,10 @@ export default function SelectLevel({ navigation, route }) {
     const gameParam = route?.params?.game;
     const gameTitle = route?.params?.title || (typeof gameParam === 'string' ? gameParam : gameParam?.title) || 'Word Jumble';
 
-    // State for SQLite player progress and selected level
+    // State for SQLite player progress, unlocked levels, player coins, and selected level
     const [playerProgress, setPlayerProgress] = useState([]);
+    const [unlockedLevels, setUnlockedLevels] = useState([]);
+    const [playerCoins, setPlayerCoins] = useState(100);
     const [selectedLevel, setSelectedLevel] = useState(Number(route?.params?.level) || 1);
     const [showStarModal, setShowStarModal] = useState(false);
     const [lockedModal, setLockedModal] = useState({
@@ -67,57 +70,69 @@ export default function SelectLevel({ navigation, route }) {
         message: '',
     });
 
-    const gameId = gameTitle === 'Color Match' ? '2' : (gameTitle === 'Math Quiz' || gameTitle === 'Maths Challenge') ? '3' : '1';
+    const gameId = gameTitle === 'Color Match' ? '2' : (gameTitle === 'Math Quiz' || gameTitle === 'Maths Challenge') ? '3' : (gameTitle === 'Memory Cards' || gameTitle === 'Memory Challenge' || gameTitle === 'Memory') ? '4' : '1';
 
-    // Fetch player progress from SQLite whenever screen comes into focus
+    // Fetch player progress and unlocks from SQLite whenever screen comes into focus
+    const loadProgress = useCallback(async () => {
+        try {
+            const data = await progressRepository.getPlayerProgress('local_player', gameId);
+            setPlayerProgress(data || []);
+
+            const unlocks = await progressRepository.getUnlockedLevels('local_player', gameId);
+            setUnlockedLevels(unlocks || []);
+
+            const profile = await playerRepository.getPlayerProfile('local_player');
+            if (profile) {
+                setPlayerCoins(Number(profile.coins) || 0);
+            }
+
+            // Calculate highest completed level sequentially
+            const completedSet = new Set(
+                (data || [])
+                    .filter((p) => Number(p.is_completed) === 1)
+                    .map((p) => Number(p.level_number))
+            );
+
+            let highestConsecutive = 0;
+            while (completedSet.has(highestConsecutive + 1)) {
+                highestConsecutive += 1;
+            }
+
+            // Compute World 1 (levels 1-5) stars
+            let w1Stars = 0;
+            (data || []).forEach((p) => {
+                const lvl = Number(p.level_number);
+                if (lvl >= 1 && lvl <= 5 && Number(p.is_completed) === 1) {
+                    w1Stars += Number(p.stars) || 0;
+                }
+            });
+
+            // Active level calculation:
+            // If Level 5 is completed and World 1 stars < 11 and Level 6 not unlocked with coins, max unlocked level is 5
+            const isWorld1Qualified = w1Stars >= 11;
+            const isLvl6Unlocked = (unlocks || []).includes(6);
+
+            let activeLvl = Math.min(highestConsecutive + 1, 20);
+            if (highestConsecutive >= 5 && !isWorld1Qualified && !isLvl6Unlocked && activeLvl > 5) {
+                activeLvl = 5;
+            }
+
+            // Prefer route param level if specified and unlocked, otherwise active level
+            const paramLvl = Number(route?.params?.level);
+            if (paramLvl && (paramLvl <= activeLvl || (unlocks || []).includes(paramLvl))) {
+                setSelectedLevel(paramLvl);
+            } else {
+                setSelectedLevel(activeLvl);
+            }
+        } catch (err) {
+            console.error('Error fetching player progress in SelectLevel:', err);
+        }
+    }, [route?.params?.level, gameId]);
+
     useFocusEffect(
         useCallback(() => {
-            const loadProgress = async () => {
-                try {
-                    const data = await progressRepository.getPlayerProgress('local_player', gameId);
-                    setPlayerProgress(data || []);
-
-                    // Calculate highest completed level sequentially
-                    const completedSet = new Set(
-                        (data || [])
-                            .filter((p) => Number(p.is_completed) === 1)
-                            .map((p) => Number(p.level_number))
-                    );
-
-                    let highestConsecutive = 0;
-                    while (completedSet.has(highestConsecutive + 1)) {
-                        highestConsecutive += 1;
-                    }
-
-                    // Compute World 1 (levels 1-5) stars
-                    let w1Stars = 0;
-                    (data || []).forEach((p) => {
-                        const lvl = Number(p.level_number);
-                        if (lvl >= 1 && lvl <= 5 && Number(p.is_completed) === 1) {
-                            w1Stars += Number(p.stars) || 0;
-                        }
-                    });
-
-                    // If level 5 is completed but World 1 stars < 11, max unlocked level is 5
-                    let activeLvl = Math.min(highestConsecutive + 1, 20);
-                    if (highestConsecutive >= 5 && w1Stars < 11 && activeLvl > 5) {
-                        activeLvl = 5;
-                    }
-
-                    // Prefer route param level if specified and unlocked, otherwise active level
-                    const paramLvl = Number(route?.params?.level);
-                    if (paramLvl && paramLvl <= activeLvl) {
-                        setSelectedLevel(paramLvl);
-                    } else {
-                        setSelectedLevel(activeLvl);
-                    }
-                } catch (err) {
-                    console.error('Error fetching player progress in SelectLevel:', err);
-                }
-            };
-
             loadProgress();
-        }, [route?.params?.level, gameId])
+        }, [loadProgress])
     );
 
     // Compute stats from playerProgress
@@ -144,27 +159,33 @@ export default function SelectLevel({ navigation, route }) {
         }
     });
 
+    const isWorld1Bypassed = world1Stars >= 11 || unlockedLevels.includes(6);
+
     let activeLevelNumber = Math.min(highestCompletedLevel + 1, 20);
-    if (highestCompletedLevel >= 5 && world1Stars < 11 && activeLevelNumber > 5) {
+    if (highestCompletedLevel >= 5 && !isWorld1Bypassed && activeLevelNumber > 5) {
         activeLevelNumber = 5;
     }
 
     // Map node items with exact dynamic status & star rating from SQLite
     const mapNodesData = mapNodesConfig.map((item) => {
         const prog = playerProgress.find((p) => Number(p.level_number) === item.level);
+        const isCoinUnlocked = unlockedLevels.includes(item.level);
         let status = 'locked';
         let stars = 0;
 
         if (prog && Number(prog.is_completed) === 1) {
             status = 'completed';
             stars = prog.stars !== undefined && prog.stars !== null ? Number(prog.stars) : 0;
+        } else if (isCoinUnlocked) {
+            status = 'active';
+            stars = 0;
         } else if (item.level === activeLevelNumber) {
             status = 'active';
             stars = 0;
         }
 
-        // Lock level 6 and beyond if World 1 stars requirement (11 stars) is not met
-        if (item.level >= 6 && world1Stars < 11 && status !== 'completed') {
+        // Lock level 6 and beyond if World 1 stars requirement (11 stars) is not met and not coin unlocked
+        if (item.level >= 6 && !isWorld1Bypassed && !isCoinUnlocked && status !== 'completed') {
             status = 'locked';
         }
 
@@ -187,12 +208,40 @@ export default function SelectLevel({ navigation, route }) {
         });
     };
 
+    // Unlock any locked level with 300 coins
+    const handleUnlockWithCoins = async (targetLvl) => {
+        const result = await progressRepository.unlockLevelWithCoins({
+            profileId: 'local_player',
+            gameId,
+            levelNumber: targetLvl,
+            cost: 300,
+        });
+
+        if (result.success) {
+            setShowStarModal(false);
+            setLockedModal((prev) => ({ ...prev, visible: false }));
+            setPlayerCoins(result.remainingCoins);
+            setUnlockedLevels((prev) => [...prev, targetLvl]);
+            setSelectedLevel(targetLvl);
+            await loadProgress();
+            Alert.alert(
+                'Level Unlocked! 🎉',
+                `Level ${targetLvl} is now unlocked! You spent 300 coins. New Balance: ${result.remainingCoins} 🪙`,
+            );
+        } else {
+            Alert.alert(
+                'Insufficient Coins',
+                result.message || `You need 300 coins to unlock Level ${targetLvl}. Complete levels to earn more coins!`
+            );
+        }
+    };
+
     // Tapping a level node
     const handleNodePress = (level) => {
         const node = mapNodesData.find((n) => n.level === level);
 
-        // Check if user tapped Level 6+ without meeting 11 stars in World 1
-        if (level >= 6 && world1Stars < 11 && node?.status === 'locked') {
+        // Check if user tapped Level 6+ without meeting 11 stars in World 1 and without coin unlock
+        if (level >= 6 && !isWorld1Bypassed && !unlockedLevels.includes(level) && node?.status === 'locked') {
             setShowStarModal(true);
             return;
         }
@@ -215,7 +264,7 @@ export default function SelectLevel({ navigation, route }) {
 
     // Play selected level button
     const handlePlaySelectedLevel = () => {
-        if (selectedLevel >= 6 && world1Stars < 11) {
+        if (selectedLevel >= 6 && !isWorld1Bypassed && !unlockedLevels.includes(selectedLevel)) {
             setShowStarModal(true);
             return;
         }
@@ -239,8 +288,10 @@ export default function SelectLevel({ navigation, route }) {
             navigation.navigate('ColorMatchDetail', { level: selectedLevel, game: gameTitle });
         } else if (gameTitle === 'Math Quiz' || gameTitle === 'Maths Challenge') {
             navigation.navigate('MathQuizDetail', { level: selectedLevel, game: gameTitle });
+        } else if (gameTitle === 'Memory Cards' || gameTitle === 'Memory Challenge' || gameTitle === 'Memory') {
+            navigation.navigate('MemoryChallengeDetail', { level: selectedLevel, game: gameTitle });
         } else {
-            navigation.navigate('WordPuzzleScreen', { level: selectedLevel, game: gameTitle });
+            navigation.navigate('WordJumbleDetail', { level: selectedLevel, game: gameTitle });
         }
     };
 
@@ -252,6 +303,8 @@ export default function SelectLevel({ navigation, route }) {
                 navigation.navigate('ColorMatchScreen', { level: 20, game: gameTitle });
             } else if (gameTitle === 'Math Quiz' || gameTitle === 'Maths Challenge') {
                 navigation.navigate('MathQuizScreen', { level: 20, game: gameTitle });
+            } else if (gameTitle === 'Memory Cards' || gameTitle === 'Memory Challenge' || gameTitle === 'Memory') {
+                navigation.navigate('MemoryChallengeScreen', { level: 20, game: gameTitle });
             } else {
                 navigation.navigate('WordPuzzleScreen', { level: 20, game: gameTitle });
             }
@@ -486,13 +539,16 @@ export default function SelectLevel({ navigation, route }) {
                 </View>
             </View>
 
-            {/* Star Requirement Locked Modal */}
+            {/* Star Requirement Locked Modal with 300 Coin Unlock */}
             <StarRequirementModal
                 visible={showStarModal}
                 requiredStars={11}
                 currentStars={world1Stars}
                 targetLevel={6}
                 previousLevelsRange="Levels 1–5"
+                unlockCoinsCost={300}
+                playerCoins={playerCoins}
+                onUnlockWithCoins={() => handleUnlockWithCoins(6)}
                 onReplay={() => setShowStarModal(false)}
                 onClose={() => setShowStarModal(false)}
             />
@@ -613,13 +669,34 @@ const styles = StyleSheet.create({
         fontFamily: fonts.bold,
         fontWeight: '800',
     },
+    subHeaderRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    coinsPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FEF3C7',
+        borderWidth: 1,
+        borderColor: '#FDE68A',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 14,
+    },
+    coinsPillText: {
+        color: '#B45309',
+        fontSize: 12,
+        fontFamily: fonts.bold,
+        fontWeight: '800',
+    },
     totalStarsPill: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: colors.orangeWarm,
         borderWidth: 1,
         borderColor: colors.orangeBorder,
-        paddingHorizontal: 12,
+        paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 14,
     },

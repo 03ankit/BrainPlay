@@ -48,8 +48,51 @@ export const savePlayerProfile = async (id = 'local_player', { name, email, phon
     }
 };
 
+export const syncPlayerCoins = async (id = 'local_player') => {
+    try {
+        const progRes = await executeSql(
+            'SELECT stars FROM player_progress WHERE profile_id = ? AND is_completed = 1;',
+            [id]
+        );
+        let earnedCoins = 0;
+        if (progRes && progRes.rows) {
+            for (let i = 0; i < progRes.rows.length; i++) {
+                const stars = Number(progRes.rows.item(i).stars) || 0;
+                if (stars >= 3) earnedCoins += 100;
+                else if (stars === 2) earnedCoins += 70;
+                else if (stars === 1) earnedCoins += 50;
+            }
+        }
+
+        let unlockCost = 0;
+        try {
+            const unlockRes = await executeSql(
+                'SELECT COUNT(*) as count FROM unlocked_levels WHERE profile_id = ?;',
+                [id]
+            );
+            if (unlockRes && unlockRes.rows && unlockRes.rows.length > 0) {
+                unlockCost = (Number(unlockRes.rows.item(0).count) || 0) * 300;
+            }
+        } catch (e) {
+            // unlocked_levels table might not exist yet during first boot
+        }
+
+        const actualCoins = Math.max(0, earnedCoins - unlockCost);
+        await executeSql(
+            "UPDATE profiles SET coins = ?, updated_at = datetime('now') WHERE id = ?;",
+            [actualCoins, id]
+        );
+        console.log(`🪙 Synced player coins for [${id}]: ${actualCoins} 🪙`);
+        return actualCoins;
+    } catch (error) {
+        console.error('Error syncing player coins:', error);
+        return 0;
+    }
+};
+
 export default {
     getPlayerProfile,
     updatePlayerStats,
     savePlayerProfile,
+    syncPlayerCoins,
 };

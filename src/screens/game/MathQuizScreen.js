@@ -4,7 +4,6 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    Animated,
     Dimensions,
     BackHandler,
     ScrollView,
@@ -19,8 +18,9 @@ import ExitGameModal from '../../components/game/ExitGameModal';
 import TimeUpModal from '../../components/game/TimeUpModal';
 import IncorrectModal from '../../components/game/IncorrectModal';
 import progressRepository from '../../database/repositories/progressRepository';
+import playerRepository from '../../database/repositories/playerRepository';
 import streakRepository from '../../database/repositories/streakRepository';
-import { getLevelChallenge } from '../../constants/mathQuizData';
+import { getLevelChallenge } from '../../data/mathQuizData';
 
 const { width } = Dimensions.get('window');
 const OPTION_CARD_WIDTH = (width - 40 - 14) / 2;
@@ -46,10 +46,6 @@ export default function MathQuizScreen({ navigation, route }) {
     const [showExitModal, setShowExitModal] = useState(false);
     const [showTimeUpModal, setShowTimeUpModal] = useState(false);
     const [showIncorrectModal, setShowIncorrectModal] = useState(false);
-
-    // Animated values
-    const cardScale = useRef(new Animated.Value(1)).current;
-    const cardShake = useRef(new Animated.Value(0)).current;
 
     const questionStartTimeRef = useRef(Date.now());
     const isProcessingRef = useRef(false);
@@ -78,17 +74,6 @@ export default function MathQuizScreen({ navigation, route }) {
         const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
         return () => backHandler.remove();
     }, [isFocused, isCompleted]);
-
-    // Error shake animation
-    const triggerShake = useCallback(() => {
-        Animated.sequence([
-            Animated.timing(cardShake, { toValue: -14, duration: 45, useNativeDriver: true }),
-            Animated.timing(cardShake, { toValue: 14, duration: 45, useNativeDriver: true }),
-            Animated.timing(cardShake, { toValue: -10, duration: 45, useNativeDriver: true }),
-            Animated.timing(cardShake, { toValue: 10, duration: 45, useNativeDriver: true }),
-            Animated.timing(cardShake, { toValue: 0, duration: 45, useNativeDriver: true }),
-        ]).start();
-    }, [cardShake]);
 
     // Timer expires
     const handleTimeUp = useCallback(() => {
@@ -128,6 +113,7 @@ export default function MathQuizScreen({ navigation, route }) {
             }
 
             const pointsEarned = currentQuestion.points || (earnedStars * 150);
+            const earnedCoins = progressRepository.getCoinRewardForStars(earnedStars);
 
             // Save to SQLite
             try {
@@ -138,6 +124,12 @@ export default function MathQuizScreen({ navigation, route }) {
                     stars: earnedStars,
                     highScore: pointsEarned,
                     isCompleted: 1,
+                });
+
+                // Update player coins & XP
+                await playerRepository.updatePlayerStats('local_player', {
+                    coins: earnedCoins,
+                    xp: earnedStars * 50,
                 });
 
                 // Automatically record activity for the 7-day regular daily streak
@@ -152,18 +144,16 @@ export default function MathQuizScreen({ navigation, route }) {
                     level: selectedLevel,
                     stars: earnedStars,
                     score: pointsEarned,
+                    coins: earnedCoins,
                     game: 'Math Quiz',
                     timeTaken: formattedTime,
                     title: earnedStars === 3 ? 'Math Master!' : 'Level Cleared!',
                 });
             }, 300);
         } else {
-            // Incorrect answer
-            triggerShake();
-            setTimeout(() => {
-                setShowIncorrectModal(true);
-                isProcessingRef.current = false;
-            }, 250);
+            // Incorrect answer - show modal immediately without extra shake
+            setShowIncorrectModal(true);
+            isProcessingRef.current = false;
         }
     };
 
@@ -216,17 +206,7 @@ export default function MathQuizScreen({ navigation, route }) {
 
                 {/* Central Math Question Card */}
                 <View style={styles.cardWrapper}>
-                    <Animated.View
-                        style={[
-                            styles.card,
-                            {
-                                transform: [
-                                    { scale: cardScale },
-                                    { translateX: cardShake },
-                                ],
-                            },
-                        ]}
-                    >
+                    <View style={styles.card}>
                         {/* Category Label */}
                         <Text style={styles.cardQuestionLabel}>
                             {currentQuestion.category || 'ARITHMETIC SPEED'}
@@ -236,7 +216,7 @@ export default function MathQuizScreen({ navigation, route }) {
                         <Text style={styles.mathExpression} numberOfLines={1} adjustsFontSizeToFit>
                             {currentQuestion.expression}
                         </Text>
-                    </Animated.View>
+                    </View>
 
                     {/* Subtitle Instruction */}
                     <Text style={styles.instructionText}>

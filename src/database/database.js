@@ -15,7 +15,7 @@ const CREATE_TABLE_QUERIES = [
         image TEXT,
         level INTEGER DEFAULT 1,
         xp INTEGER DEFAULT 0,
-        coins INTEGER DEFAULT 100,
+        coins INTEGER DEFAULT 0,
         trophies INTEGER DEFAULT 0,
         streak_count INTEGER DEFAULT 0,
         created_at TEXT,
@@ -92,6 +92,13 @@ const CREATE_TABLE_QUERIES = [
         game_id TEXT NOT NULL,
         level_number INTEGER NOT NULL,
         created_at TEXT
+    );`,
+    `CREATE TABLE IF NOT EXISTS unlocked_levels (
+        id TEXT PRIMARY KEY,
+        profile_id TEXT NOT NULL,
+        game_id TEXT NOT NULL,
+        level_number INTEGER NOT NULL,
+        unlocked_at TEXT
     );`,
 ];
 

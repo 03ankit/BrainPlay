@@ -26,7 +26,7 @@ export default function Profile({ navigation }) {
     const [userProfile, setUserProfile] = useState({
         name: 'BrainPlayer',
         level: 1,
-        coins: 100,
+        coins: 0,
     });
 
     const [streakData, setStreakData] = useState({
@@ -61,7 +61,8 @@ export default function Profile({ navigation }) {
                         setUserProfile({
                             name: item.name || 'BrainPlayer',
                             level: item.level || 1,
-                            coins: item.coins !== undefined ? item.coins : 100,
+                            coins: item.coins !== undefined ? item.coins : 0,
+                            image: item.image || null,
                         });
                     }
                 } catch (err) {
@@ -89,16 +90,17 @@ export default function Profile({ navigation }) {
                 {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>BrainPlay</Text>
-                    <View style={styles.levelPill}>
+                    {/* <View style={styles.levelPill}>
                         <Text style={styles.levelText}>Lv. {userProfile.level} • {userProfile.coins} 🪙</Text>
-                    </View>
+                    </View> */}
                 </View>
 
                 {/* Main Profile Card (Custom Component) */}
                 <UserProfileCard
                     name={userProfile.name}
                     level={userProfile.level}
-                    avatarSource={images.person}
+                    coins={userProfile.coins}
+                    avatarSource={userProfile.image ? { uri: userProfile.image } : images.person}
                     tier={streakData?.tier}
                 />
 

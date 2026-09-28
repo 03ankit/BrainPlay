@@ -44,13 +44,13 @@ export const recordDailyActivity = async (profileId = 'local_player', gameId = '
 
         let currentStreak = 0;
         let lastPlayedDate = null;
-        let coins = 100;
+        let coins = 0;
         let trophies = 0;
 
         if (profileRes && profileRes.rows && profileRes.rows.length > 0) {
             const row = profileRes.rows.item(0);
             currentStreak = Number(row.streak_count) || 0;
-            coins = Number(row.coins) || 100;
+            coins = Number(row.coins) || 0;
             trophies = Number(row.trophies) || 0;
         }
 

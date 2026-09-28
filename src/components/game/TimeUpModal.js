@@ -47,7 +47,11 @@ export default function TimeUpModal({
 
                     {/* Time Up Icon Badge */}
                     <View style={styles.iconCircle}>
-                        <Text style={styles.iconText}>⏰</Text>
+                        <Image
+                            source={images.timer}
+                            style={styles.modalIconImage}
+                            resizeMode="contain"
+                        />
                     </View>
 
                     {/* Title & Description */}
@@ -130,8 +134,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginBottom: 16,
     },
-    iconText: {
-        fontSize: 32,
+    modalIconImage: {
+        width: 34,
+        height: 34,
+        tintColor: '#EF4444',
     },
     title: {
         fontSize: 22,

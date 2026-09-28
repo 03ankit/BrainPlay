@@ -1,4 +1,4 @@
-import { MATH_QUIZ_LEVELS, getLevelChallenge } from '../src/constants/mathQuizData';
+import { MATH_QUIZ_LEVELS, getLevelChallenge } from '../src/data/mathQuizData';
 
 describe('Math Quiz Game Data & Logic (1 Level = 1 Question)', () => {
     test('MATH_QUIZ_LEVELS has 20 configured levels with valid 4 options and correct answers', () => {

@@ -23,7 +23,7 @@ export default function BottomNavigation() {
                 animation: 'fade',
                 tabBarShowLabel: false,
                 tabBarStyle: {
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: colors.white,
                     height: 55 + insets.bottom,
                     borderTopWidth: 0,
                     paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
@@ -82,7 +82,7 @@ export default function BottomNavigation() {
         >
             <Tab.Screen name="Home" component={Home} />
             <Tab.Screen name="Games" component={Game} />
-            <Tab.Screen name="Achievements" component={Achievements} />
+            {/* <Tab.Screen name="Achievements" component={Achievements} /> */}
             <Tab.Screen name="Profile" component={Profile} />
         </Tab.Navigator>
     );

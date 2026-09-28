@@ -22,10 +22,11 @@ import IncorrectModal from '../../components/game/IncorrectModal';
 import questionRepository from '../../database/repositories/questionRepository';
 import gameHistoryRepository from '../../database/repositories/gameHistoryRepository';
 import progressRepository from '../../database/repositories/progressRepository';
+import playerRepository from '../../database/repositories/playerRepository';
 import streakRepository from '../../database/repositories/streakRepository';
 import fonts from '../../constants/fonts';
 import colors from '../../constants/colour';
-import WORD_PUZZLE_QUESTIONS from '../../constants/wordPuzzleQuestions';
+import WORD_PUZZLE_QUESTIONS from '../../data/wordPuzzleQuestions';
 
 
 const FALLBACK_QUESTIONS = WORD_PUZZLE_QUESTIONS;
@@ -323,6 +324,9 @@ export default function WordPuzzleScreen({ navigation, route }) {
                 earnedStars = 1;
             }
 
+            // Calculate coin rewards: 3 stars -> 100, 2 stars -> 70, 1 star -> 50
+            const earnedCoins = progressRepository.getCoinRewardForStars(earnedStars);
+
             // Save session history and level progress to SQLite
             await gameHistoryRepository.saveGameHistory({
                 profileId: 'local_player',
@@ -342,6 +346,16 @@ export default function WordPuzzleScreen({ navigation, route }) {
                 isCompleted: 1,
             });
 
+            // Update player coins & XP
+            try {
+                await playerRepository.updatePlayerStats('local_player', {
+                    coins: earnedCoins,
+                    xp: earnedStars * 50,
+                });
+            } catch (coinErr) {
+                console.log('Error updating player stats on level completion:', coinErr);
+            }
+
             // Automatically record activity for the 7-day regular daily streak
             try {
                 await streakRepository.recordDailyActivity('local_player', '1', playerLevel);
@@ -354,6 +368,7 @@ export default function WordPuzzleScreen({ navigation, route }) {
                 level: playerLevel,
                 timeTaken: formattedTime,
                 stars: earnedStars,
+                coins: earnedCoins,
                 title: earnedStars === 3 ? 'Mastermind!' : earnedStars === 2 ? 'Great Job!' : 'Level Cleared!',
                 game: 'Word Jumble',
             });

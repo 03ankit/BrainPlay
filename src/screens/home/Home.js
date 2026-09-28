@@ -74,7 +74,7 @@ export default function Home({ navigation }) {
     const [userProfile, setUserProfile] = useState({
         name: 'Player',
         level: 1,
-        coins: 100,
+        coins: 0,
         image: null,
     });
 
@@ -98,7 +98,7 @@ export default function Home({ navigation }) {
                         setUserProfile({
                             name: item.name || 'Player',
                             level: item.level || 1,
-                            coins: item.coins !== undefined ? item.coins : 100,
+                            coins: item.coins !== undefined ? item.coins : 0,
                             image: item.image || null,
                         });
                     }
@@ -158,7 +158,7 @@ export default function Home({ navigation }) {
                     {/* Level & Coins Badge */}
                     <View style={styles.levelBadge}>
                         <Text style={styles.levelBadgeText}>
-                            Lv. {userProfile.level} • {userProfile.coins} <Text style={styles.coinEmoji}>🪙</Text>
+                            {userProfile.coins} <Text style={styles.coinEmoji}>🪙</Text>
                         </Text>
                     </View>
                 </View>
@@ -257,9 +257,9 @@ export default function Home({ navigation }) {
                             </Text>
 
                             {/* Best Score */}
-                            <Text style={styles.bestScoreText} numberOfLines={1}>
+                            {/* <Text style={styles.bestScoreText} numberOfLines={1}>
                                 Best: {game.bestScore}
-                            </Text>
+                            </Text> */}
 
                             {/* Play Action Button (Vibrant Royal Blue) */}
                             <TouchableOpacity

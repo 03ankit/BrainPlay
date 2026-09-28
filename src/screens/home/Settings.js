@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useCallback } from 'react';
 import {
     View,
     Text,
@@ -11,16 +11,26 @@ import {
     Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import colors from '../../constants/colour';
 import fonts from '../../constants/fonts';
 import images from '../../constants/images';
 import { AuthContext } from '../../context/AuthContext';
+import playerRepository from '../../database/repositories/playerRepository';
 
 import PersonalDetailsCard from '../../components/PersonalDetailsCard';
 
 export default function Settings({ onBack, navigation }) {
     const insets = useSafeAreaInsets();
     const { signOut } = useContext(AuthContext);
+
+    // Profile state
+    const [userProfile, setUserProfile] = useState({
+        name: '',
+        email: '',
+        phone_number: '',
+        image: null,
+    });
 
     // Toggle states for Audio & Feedback
     const [soundEffects, setSoundEffects] = useState(true);
@@ -29,6 +39,56 @@ export default function Settings({ onBack, navigation }) {
 
     // Logout Modal state
     const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+
+    // Save Details Success Modal state
+    const [saveModalVisible, setSaveModalVisible] = useState(false);
+
+    // Load live profile from SQLite
+    useFocusEffect(
+        useCallback(() => {
+            let isActive = true;
+            const loadProfile = async () => {
+                try {
+                    const profile = await playerRepository.getPlayerProfile('local_player');
+                    if (profile && isActive) {
+                        setUserProfile({
+                            name: profile.name || 'Brain Player',
+                            email: profile.email || 'player@brainplay.com',
+                            phone_number: profile.phone_number || '',
+                            image: profile.image || null,
+                        });
+                    }
+                } catch (err) {
+                    console.error('Error fetching profile in Settings:', err);
+                }
+            };
+            loadProfile();
+            return () => {
+                isActive = false;
+            };
+        }, [])
+    );
+
+    const handleSavePersonalDetails = async (data) => {
+        try {
+            await playerRepository.savePlayerProfile('local_player', {
+                name: data.name,
+                email: data.email,
+                phone_number: data.phone,
+                image: data.image,
+            });
+            setUserProfile({
+                name: data.name,
+                email: data.email,
+                phone_number: data.phone,
+                image: data.image,
+            });
+            setSaveModalVisible(true);
+        } catch (err) {
+            console.error('Error saving profile in Settings:', err);
+            Alert.alert("Error", "Failed to save personal details. Please try again.");
+        }
+    };
 
     const handleBackPress = () => {
         if (onBack) {
@@ -69,12 +129,11 @@ export default function Settings({ onBack, navigation }) {
 
                 {/* Personal Details Custom Component Card */}
                 <PersonalDetailsCard
-                    initialName="Alex Rivers"
-                    initialEmail="alex.rivers@brainplay.com"
-                    initialPhone="+1 (555) 012-3456"
-                    onSave={(data) => {
-                        Alert.alert("Success", "Personal details updated successfully!");
-                    }}
+                    initialName={userProfile.name}
+                    initialEmail={userProfile.email}
+                    initialPhone={userProfile.phone_number}
+                    initialImage={userProfile.image}
+                    onSave={handleSavePersonalDetails}
                 />
 
                 {/* Section: Audio & Feedback */}
@@ -226,6 +285,33 @@ export default function Settings({ onBack, navigation }) {
                                 <Text style={styles.logoutModalBtnText}>Yes, Logout</Text>
                             </TouchableOpacity>
                         </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Save Details Success Modal */}
+            <Modal
+                visible={saveModalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setSaveModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.saveIconBadge}>
+                            <Image source={images.save} style={styles.modalSaveIcon} />
+                        </View>
+                        <Text style={styles.modalTitle}>Saved Successfully!</Text>
+                        <Text style={styles.modalSubtitle}>
+                            Your personal details have been updated and saved to your profile.
+                        </Text>
+                        <TouchableOpacity
+                            style={styles.saveOkBtn}
+                            onPress={() => setSaveModalVisible(false)}
+                            activeOpacity={0.85}
+                        >
+                            <Text style={styles.saveOkBtnText}>Got it</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
@@ -412,6 +498,38 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
     },
     logoutModalBtnText: {
+        fontSize: 15,
+        fontFamily: fonts.bold,
+        color: colors.white,
+    },
+    saveIconBadge: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: '#EEF2FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    modalSaveIcon: {
+        width: 26,
+        height: 26,
+        resizeMode: 'contain',
+        tintColor: colors.purplePlay || '#6A4BFF',
+    },
+    saveOkBtn: {
+        width: '100%',
+        backgroundColor: colors.purplePlay || '#6A4BFF',
+        paddingVertical: 14,
+        borderRadius: 16,
+        alignItems: 'center',
+        elevation: 3,
+        shadowColor: colors.purplePlay || '#6A4BFF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+    },
+    saveOkBtnText: {
         fontSize: 15,
         fontFamily: fonts.bold,
         color: colors.white,

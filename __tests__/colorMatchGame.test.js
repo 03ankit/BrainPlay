@@ -2,7 +2,7 @@ import {
     STROOP_COLORS,
     COLOR_MATCH_LEVELS,
     getLevelChallenge,
-} from '../src/constants/colorMatchData';
+} from '../src/data/colorMatchData';
 
 describe('Color Match Game & Stroop Engine Unit Tests (1 Level = 1 Game)', () => {
     describe('1. Stroop Palettes & Levels Config', () => {

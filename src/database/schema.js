@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     image TEXT,
     level INTEGER DEFAULT 1,
     xp INTEGER DEFAULT 0,
-    coins INTEGER DEFAULT 100,
+    coins INTEGER DEFAULT 0,
     trophies INTEGER DEFAULT 0,
     streak_count INTEGER DEFAULT 1,
     created_at TIMESTAMPTZ DEFAULT NOW(),

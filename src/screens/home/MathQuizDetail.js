@@ -14,7 +14,7 @@ import HowToPlayCard from '../../components/game/HowToPlayCard';
 import GameBottomActionBar from '../../components/game/GameBottomActionBar';
 import images from '../../constants/images';
 import colors from '../../constants/colour';
-import { getLevelChallenge } from '../../constants/mathQuizData';
+import { getLevelChallenge } from '../../data/mathQuizData';
 
 export default function MathQuizDetail({ navigation, route }) {
     const gameTitle = route?.params?.game || route?.params?.title || 'Math Quiz';

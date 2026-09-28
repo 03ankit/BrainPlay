@@ -14,7 +14,6 @@ export const images = {
     champions: require('../assets/image/football.png'),
     settings: require('../assets/image/setting.png'),
     share: require('../assets/image/share.png'),
-    exit: require('../assets/image/exit.png'),
     next: require('../assets/image/next.png'),
     star: require('../assets/image/star.png'),
     starfilled: require('../assets/image/starfill.png'),
@@ -36,7 +35,10 @@ export const images = {
     crown: require('../assets/image/crown.png'),
     immortal: require('../assets/image/Immortal.png'),
     legend: require('../assets/image/legend.png'),
-
+    heart: require('../assets/image/heart.png'),
+    timer: require('../assets/image/hourglass.png'),
+    exit: require('../assets/image/logout.png'),
+    save: require('../assets/image/Save.png'),
 
 };
 

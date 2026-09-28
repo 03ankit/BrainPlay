@@ -4,7 +4,6 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    Animated,
     Dimensions,
     BackHandler,
     ScrollView,
@@ -19,8 +18,9 @@ import ExitGameModal from '../../components/game/ExitGameModal';
 import TimeUpModal from '../../components/game/TimeUpModal';
 import IncorrectModal from '../../components/game/IncorrectModal';
 import progressRepository from '../../database/repositories/progressRepository';
+import playerRepository from '../../database/repositories/playerRepository';
 import streakRepository from '../../database/repositories/streakRepository';
-import { getLevelChallenge } from '../../constants/colorMatchData';
+import { getLevelChallenge } from '../../data/colorMatchData';
 
 const { width } = Dimensions.get('window');
 
@@ -43,10 +43,6 @@ export default function ColorMatchScreen({ navigation, route }) {
     const [showExitModal, setShowExitModal] = useState(false);
     const [showTimeUpModal, setShowTimeUpModal] = useState(false);
     const [showIncorrectModal, setShowIncorrectModal] = useState(false);
-
-    // Animated values
-    const cardScale = useRef(new Animated.Value(1)).current;
-    const cardShake = useRef(new Animated.Value(0)).current;
 
     const questionStartTimeRef = useRef(Date.now());
     const isProcessingRef = useRef(false);
@@ -84,17 +80,6 @@ export default function ColorMatchScreen({ navigation, route }) {
         setShowTimeUpModal(true);
     }, [isCompleted, isFocused]);
 
-    // Trigger error shake animation
-    const triggerShake = useCallback(() => {
-        Animated.sequence([
-            Animated.timing(cardShake, { toValue: -14, duration: 45, useNativeDriver: true }),
-            Animated.timing(cardShake, { toValue: 14, duration: 45, useNativeDriver: true }),
-            Animated.timing(cardShake, { toValue: -10, duration: 45, useNativeDriver: true }),
-            Animated.timing(cardShake, { toValue: 10, duration: 45, useNativeDriver: true }),
-            Animated.timing(cardShake, { toValue: 0, duration: 45, useNativeDriver: true }),
-        ]).start();
-    }, [cardShake]);
-
     // Check Answer Handler
     const handleAnswer = async (userPressedMatch) => {
         if (isProcessingRef.current || isCompleted) return;
@@ -121,6 +106,7 @@ export default function ColorMatchScreen({ navigation, route }) {
             }
 
             const pointsEarned = earnedStars * 100;
+            const earnedCoins = progressRepository.getCoinRewardForStars(earnedStars);
 
             // Save to SQLite progressRepository
             try {
@@ -131,6 +117,12 @@ export default function ColorMatchScreen({ navigation, route }) {
                     stars: earnedStars,
                     highScore: pointsEarned,
                     isCompleted: 1,
+                });
+
+                // Update player coins & XP
+                await playerRepository.updatePlayerStats('local_player', {
+                    coins: earnedCoins,
+                    xp: earnedStars * 50,
                 });
 
                 // Automatically record activity for the 7-day regular daily streak
@@ -145,18 +137,16 @@ export default function ColorMatchScreen({ navigation, route }) {
                     level: selectedLevel,
                     stars: earnedStars,
                     score: pointsEarned,
+                    coins: earnedCoins,
                     game: 'Color Match',
                     timeTaken: formattedTime,
                     title: earnedStars === 3 ? 'Mastermind!' : earnedStars === 2 ? 'Great Job!' : 'Level Cleared!',
                 });
             }, 300);
         } else {
-            // Incorrect answer
-            triggerShake();
-            setTimeout(() => {
-                setShowIncorrectModal(true);
-                isProcessingRef.current = false;
-            }, 250);
+            // Incorrect answer - show modal immediately without extra shake
+            setShowIncorrectModal(true);
+            isProcessingRef.current = false;
         }
     };
 
@@ -207,17 +197,7 @@ export default function ColorMatchScreen({ navigation, route }) {
 
                 {/* Central Stroop Question Card */}
                 <View style={styles.cardWrapper}>
-                    <Animated.View
-                        style={[
-                            styles.card,
-                            {
-                                transform: [
-                                    { scale: cardScale },
-                                    { translateX: cardShake },
-                                ],
-                            },
-                        ]}
-                    >
+                    <View style={styles.card}>
                         <Text style={styles.cardQuestionLabel}>
                             DOES THE TEXT MATCH THE COLOR?
                         </Text>
@@ -231,7 +211,7 @@ export default function ColorMatchScreen({ navigation, route }) {
                         >
                             {currentQuestion?.word || 'BLUE'}
                         </Text>
-                    </Animated.View>
+                    </View>
 
                     {/* Subtitle Instruction */}
                     <Text style={styles.instructionText}>

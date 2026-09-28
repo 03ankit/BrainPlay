@@ -8,6 +8,7 @@ import {
     Dimensions,
     ScrollView,
     BackHandler,
+    Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -16,27 +17,42 @@ import fonts from '../../constants/fonts';
 import colors from '../../constants/colour';
 import StarRequirementModal from '../../components/game/StarRequirementModal';
 import progressRepository from '../../database/repositories/progressRepository';
+import playerRepository from '../../database/repositories/playerRepository';
 
 const { width, height } = Dimensions.get('window');
 
 export default function LevelCompleteScreen({ navigation, route }) {
     const insets = useSafeAreaInsets();
 
-    const levelNumber = Number(route?.params?.level) || 12;
+    const levelNumber = Number(route?.params?.level) || 1;
     const timeTaken = route?.params?.timeTaken || '00:12';
     const stars = Number(route?.params?.stars) || 3;
     const title = route?.params?.title || 'Mastermind!';
     const gameTitle = route?.params?.game || 'Word Jumble';
 
+    // Calculate coin reward: 3 stars -> 100 coins, 2 stars -> 70 coins, 1 star -> 50 coins
+    const earnedCoins = route?.params?.coins !== undefined
+        ? Number(route?.params?.coins)
+        : progressRepository.getCoinRewardForStars(stars);
+
     // Star requirement modal state
     const [showStarModal, setShowStarModal] = useState(false);
     const [world1Stars, setWorld1Stars] = useState(0);
+    const [playerCoins, setPlayerCoins] = useState(100);
+    const [unlockedLevels, setUnlockedLevels] = useState([]);
 
-    const gameId = gameTitle === 'Color Match' ? '2' : (gameTitle === 'Math Quiz' || gameTitle === 'Maths Challenge') ? '3' : '1';
+    const gameId = gameTitle === 'Color Match'
+        ? '2'
+        : (gameTitle === 'Math Quiz' || gameTitle === 'Maths Challenge')
+        ? '3'
+        : (gameTitle === 'Memory Cards' || gameTitle === 'Memory Challenge' || gameTitle === 'Memory')
+        ? '4'
+        : '1';
 
-    // Calculate World 1 (levels 1-5) total stars
-    const fetchWorld1Stars = useCallback(async () => {
+    // Fetch live progress, unlocked levels, and profile coins
+    const fetchGameStatus = useCallback(async () => {
         try {
+            // 1. Calculate World 1 (levels 1-5) total stars
             const progressList = await progressRepository.getPlayerProgress('local_player', gameId);
             let total = 0;
             if (Array.isArray(progressList)) {
@@ -48,44 +64,97 @@ export default function LevelCompleteScreen({ navigation, route }) {
                 });
             }
             setWorld1Stars(total);
-            return total;
+
+            // 2. Fetch coin unlocks
+            const unlocks = await progressRepository.getUnlockedLevels('local_player', gameId);
+            setUnlockedLevels(unlocks || []);
+
+            // 3. Fetch profile coins
+            const profile = await playerRepository.getPlayerProfile('local_player');
+            if (profile) {
+                setPlayerCoins(Number(profile.coins) || 0);
+            }
+
+            return { totalStars: total, unlocks };
         } catch (err) {
-            console.error('Error checking stars progress:', err);
-            return 0;
+            console.error('Error checking level complete status:', err);
+            return { totalStars: 0, unlocks: [] };
         }
     }, [gameId]);
 
     useEffect(() => {
-        fetchWorld1Stars();
-    }, [fetchWorld1Stars]);
+        fetchGameStatus();
+    }, [fetchGameStatus]);
 
-    // Continue to Next Level
-    const handleContinue = async () => {
-        const nextLevel = levelNumber + 1;
-
-        // If completing Level 5 and trying to go to Level 6, enforce 11 stars minimum requirement
-        if (nextLevel === 6) {
-            const currentTotalStars = await fetchWorld1Stars();
-            if (currentTotalStars < 11) {
-                setShowStarModal(true);
-                return;
-            }
-        }
-
+    // Proceed to next level helper
+    const navigateToGameLevel = (lvl) => {
         const targetGameScreen = gameTitle === 'Color Match'
             ? 'ColorMatchScreen'
             : (gameTitle === 'Math Quiz' || gameTitle === 'Maths Challenge')
             ? 'MathQuizScreen'
+            : (gameTitle === 'Memory Cards' || gameTitle === 'Memory Challenge' || gameTitle === 'Memory')
+            ? 'MemoryChallengeScreen'
             : 'WordPuzzleScreen';
 
         navigation.reset({
             index: 2,
             routes: [
                 { name: 'BottomNavigation' },
-                { name: 'SelectLevel', params: { level: nextLevel, game: gameTitle } },
-                { name: targetGameScreen, params: { level: nextLevel, game: gameTitle } },
+                { name: 'SelectLevel', params: { level: lvl, game: gameTitle } },
+                { name: targetGameScreen, params: { level: lvl, game: gameTitle } },
             ],
         });
+    };
+
+    // Continue to Next Level
+    const handleContinue = async () => {
+        const nextLevel = levelNumber + 1;
+
+        // If completing Level 5 and moving to Level 6:
+        // Must either have >= 11 stars in World 1 or have unlocked Level 6 with 300 coins
+        if (nextLevel === 6) {
+            const status = await fetchGameStatus();
+            const isQualified = status.totalStars >= 11;
+            const isCoinUnlocked = (status.unlocks || []).includes(6);
+
+            if (!isQualified && !isCoinUnlocked) {
+                setShowStarModal(true);
+                return;
+            }
+        }
+
+        navigateToGameLevel(nextLevel);
+    };
+
+    // Handle unlocking level with 300 coins from modal
+    const handleUnlockWithCoins = async () => {
+        const result = await progressRepository.unlockLevelWithCoins({
+            profileId: 'local_player',
+            gameId,
+            levelNumber: 6,
+            cost: 300,
+        });
+
+        if (result.success) {
+            setShowStarModal(false);
+            setPlayerCoins(result.remainingCoins);
+            setUnlockedLevels((prev) => [...prev, 6]);
+            Alert.alert(
+                'Level Unlocked! 🎉',
+                `You unlocked Level 6 with 300 coins. Balance: ${result.remainingCoins} 🪙`,
+                [
+                    {
+                        text: "Play Level 6 ▶",
+                        onPress: () => navigateToGameLevel(6),
+                    },
+                ]
+            );
+        } else {
+            Alert.alert(
+                'Insufficient Coins',
+                result.message || 'You need 300 coins to unlock Level 6. Replay previous levels to earn more coins!'
+            );
+        }
     };
 
     // Navigate to Level Map / Home
@@ -99,7 +168,7 @@ export default function LevelCompleteScreen({ navigation, route }) {
         });
     };
 
-    // Intercept hardware back button to navigate home instead of returning to completed puzzle screen
+    // Intercept hardware back button to navigate home
     useFocusEffect(
         useCallback(() => {
             const onBackPress = () => {
@@ -157,13 +226,32 @@ export default function LevelCompleteScreen({ navigation, route }) {
                         })}
                     </View>
 
-                    {/* Time Taken Stat Card */}
-                    <View style={styles.statCard}>
-                        <View style={styles.statRow}>
-                            <Text style={styles.clockIcon}>⏱</Text>
-                            <Text style={styles.statLabel}>TIME TAKEN</Text>
+                    {/* Stats Cards Row: Time Taken & Coins Earned */}
+                    <View style={styles.statsRow}>
+                        {/* Time Taken Stat Card */}
+                        <View style={styles.statCard}>
+                            <View style={styles.statHeader}>
+                                <Text style={styles.clockIcon}>⏱</Text>
+                                <Text style={styles.statLabel}>TIME</Text>
+                            </View>
+                            <Text style={styles.statValue}>{timeTaken}</Text>
                         </View>
-                        <Text style={styles.statValue}>{timeTaken}</Text>
+
+                        {/* Coins Earned Stat Card */}
+                        <View style={[styles.statCard, styles.coinsCard]}>
+                            <View style={styles.statHeader}>
+                                <Text style={styles.coinIconEmoji}>🪙</Text>
+                                <Text style={[styles.statLabel, { color: '#B45309' }]}>COINS</Text>
+                            </View>
+                            <Text style={[styles.statValue, { color: '#B45309' }]}>
+                                +{earnedCoins}
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Total Coin Balance Badge */}
+                    <View style={styles.balancePill}>
+                        <Text style={styles.balanceText}>Total Balance: {playerCoins} 🪙</Text>
                     </View>
 
                     {/* Action Buttons */}
@@ -190,13 +278,16 @@ export default function LevelCompleteScreen({ navigation, route }) {
                 </View>
             </ScrollView>
 
-            {/* Star Requirement Locked Modal */}
+            {/* Star Requirement / 300 Coin Unlock Modal */}
             <StarRequirementModal
                 visible={showStarModal}
                 requiredStars={11}
                 currentStars={world1Stars}
                 targetLevel={6}
                 previousLevelsRange="Levels 1–5"
+                unlockCoinsCost={300}
+                playerCoins={playerCoins}
+                onUnlockWithCoins={handleUnlockWithCoins}
                 onReplay={handleHome}
                 onClose={() => setShowStarModal(false)}
             />
@@ -207,7 +298,7 @@ export default function LevelCompleteScreen({ navigation, route }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.darkPurple || '#1E1B4B', // Deep dark purple background matching top artwork
+        backgroundColor: colors.darkPurple || '#1E1B4B',
     },
     scrollContent: {
         flexGrow: 1,
@@ -215,7 +306,7 @@ const styles = StyleSheet.create({
     },
     heroBannerContainer: {
         width: width,
-        height: height * 0.42,
+        height: height * 0.40,
         backgroundColor: colors.darkPurple || '#1E1B4B',
         position: 'relative',
     },
@@ -228,11 +319,11 @@ const styles = StyleSheet.create({
         backgroundColor: colors.white,
         borderTopLeftRadius: 36,
         borderTopRightRadius: 36,
-        paddingHorizontal: 28,
-        paddingTop: 32,
+        paddingHorizontal: 24,
+        paddingTop: 28,
         paddingBottom: 20,
         alignItems: 'center',
-        marginTop: -30, // Overlap banner smoothly
+        marginTop: -30,
     },
     levelSubtitle: {
         fontSize: 13,
@@ -244,7 +335,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     mainTitle: {
-        fontSize: 30,
+        fontSize: 28,
         fontFamily: fonts.bold,
         fontWeight: '900',
         color: colors.darkBlue,
@@ -256,7 +347,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        marginBottom: 20,
+        marginBottom: 16,
     },
     starIconImage: {
         width: 38,
@@ -265,47 +356,72 @@ const styles = StyleSheet.create({
     starDimmed: {
         opacity: 0.35,
     },
-    statCard: {
+    statsRow: {
+        flexDirection: 'row',
         width: '100%',
+        gap: 12,
+        marginBottom: 12,
+    },
+    statCard: {
+        flex: 1,
         backgroundColor: colors.primaryLight,
-        borderRadius: 22,
-        paddingVertical: 18,
-        paddingHorizontal: 20,
+        borderRadius: 20,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 32,
     },
-    statRow: {
+    coinsCard: {
+        backgroundColor: '#FEF3C7',
+        borderWidth: 1.5,
+        borderColor: '#FDE68A',
+    },
+    statHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 5,
         marginBottom: 4,
     },
     clockIcon: {
-        fontSize: 15,
+        fontSize: 14,
         color: colors.primary,
+    },
+    coinIconEmoji: {
+        fontSize: 14,
     },
     statLabel: {
         fontSize: 11,
         fontFamily: fonts.bold,
         fontWeight: '800',
         color: colors.gray,
-        letterSpacing: 1,
+        letterSpacing: 0.8,
     },
     statValue: {
-        fontSize: 28,
+        fontSize: 24,
         fontFamily: fonts.bold,
         fontWeight: '900',
         color: colors.darkBlue,
     },
+    balancePill: {
+        backgroundColor: '#F1F5F9',
+        paddingHorizontal: 14,
+        paddingVertical: 6,
+        borderRadius: 14,
+        marginBottom: 24,
+    },
+    balanceText: {
+        fontSize: 13,
+        fontFamily: fonts.semiBold,
+        color: '#64748B',
+    },
     buttonGroup: {
         width: '100%',
-        gap: 14,
+        gap: 12,
     },
     continueButton: {
         width: '100%',
-        height: 56,
-        borderRadius: 22,
+        height: 54,
+        borderRadius: 20,
         backgroundColor: colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
@@ -323,8 +439,8 @@ const styles = StyleSheet.create({
     },
     homeButton: {
         width: '100%',
-        height: 56,
-        borderRadius: 22,
+        height: 54,
+        borderRadius: 20,
         backgroundColor: colors.white,
         borderWidth: 1.5,
         borderColor: colors.grayBorder,

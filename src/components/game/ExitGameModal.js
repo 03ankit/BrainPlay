@@ -46,7 +46,11 @@ export default function ExitGameModal({
 
                     {/* Warning Icon Badge */}
                     <View style={styles.iconCircle}>
-                        <Text style={styles.iconText}>🚪</Text>
+                        <Image
+                            source={images.exit}
+                            style={styles.modalIconImage}
+                            resizeMode="contain"
+                        />
                     </View>
 
                     {/* Title & Description */}
@@ -126,8 +130,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginBottom: 16,
     },
-    iconText: {
-        fontSize: 30,
+    modalIconImage: {
+        width: 32,
+        height: 32,
+        tintColor: '#EF4444',
     },
     title: {
         fontSize: 22,

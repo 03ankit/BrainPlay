@@ -1,5 +1,6 @@
 import { initDatabase, executeSql } from './database';
-import { WORD_PUZZLE_QUESTIONS } from '../constants/wordPuzzleQuestions';
+import { WORD_PUZZLE_QUESTIONS } from '../data/wordPuzzleQuestions';
+import playerRepository from './repositories/playerRepository';
 
 export const seedDatabase = async () => {
     try {
@@ -20,14 +21,14 @@ export const seedDatabase = async () => {
         }
 
         // 2. Check if default user profile exists
-        const profileCheck = await executeSql('SELECT COUNT(*) as count FROM profiles;');
-        if (profileCheck.rows.item(0).count === 0) {
-            console.log('🌱 Seeding default player profile...');
-            await executeSql(
-                `INSERT INTO profiles (id, name, email, level, xp, coins, trophies, streak_count, created_at, updated_at) VALUES 
-                ('local_player', 'Brain Player', 'player@brainplay.com', 24, 2400, 450, 12, 5, datetime('now'), datetime('now'));`
-            );
-        }
+        // const profileCheck = await executeSql('SELECT COUNT(*) as count FROM profiles;');
+        // if (profileCheck.rows.item(0).count === 0) {
+        //     console.log('🌱 Seeding default player profile...');
+        //     await executeSql(
+        //         `INSERT INTO profiles (id, name, email, phone_number, level, xp, coins, trophies, streak_count, created_at, updated_at) VALUES 
+        //         ('local_player', 'Brain Player', 'player@brainplay.com', '+1 (555) 019-2834', 1, 0, 0, 0, 0, datetime('now'), datetime('now'));`
+        //     );
+        // }
 
         // 3. Seed / Sync all 20 Word Puzzle questions into SQLite questions table
         console.log('🌱 Syncing all Word Puzzle questions...');
@@ -62,7 +63,8 @@ export const seedDatabase = async () => {
                 ]
             );
         }
-        console.log('✅ Successfully synced Word Puzzle questions into SQLite!');
+        // 4. Sync player coins accurately with actual gameplay progress
+        await playerRepository.syncPlayerCoins('local_player');
 
         console.log('✅ Seed check completed.');
     } catch (error) {

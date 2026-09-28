@@ -8,6 +8,7 @@ export default function UserProfileCard({
     name = "Alex Rivet",
     role = "Master of Logic • Member since June '23",
     level = 24,
+    coins = 100,
     currentXp = 2450,
     maxXp = 3000,
     avatarSource = images.person,
@@ -29,12 +30,20 @@ export default function UserProfileCard({
 
             {/* User Info */}
             <Text style={styles.userName}>{name}</Text>
-            {tier && (
-                <View style={styles.tierPill}>
-                    <Image source={images[tier.badgeKey]} style={styles.tierPillIcon} resizeMode="contain" />
-                    <Text style={[styles.tierPillText, { color: tier.color }]}>{tier.name} Rank</Text>
+            
+            {/* Badges Row: Rank Tier & Coins */}
+            <View style={styles.badgesRow}>
+                {tier && (
+                    <View style={styles.tierPill}>
+                        <Image source={images[tier.badgeKey]} style={styles.tierPillIcon} resizeMode="contain" />
+                        <Text style={[styles.tierPillText, { color: tier.color }]}>{tier.name} Rank</Text>
+                    </View>
+                )}
+                <View style={styles.coinsPill}>
+                    <Text style={styles.coinsEmoji}>🪙</Text>
+                    <Text style={styles.coinsText}>{coins} Coins</Text>
                 </View>
-            )}
+            </View>
 
             {/* Progress Section */}
             <View style={styles.xpSection}>
@@ -110,8 +119,16 @@ const styles = StyleSheet.create({
         fontFamily: fonts.bold || 'Poppins-Bold',
         fontWeight: '800',
         color: '#1E293B',
-        marginBottom: 4,
+        marginBottom: 8,
         textAlign: 'center',
+    },
+    badgesRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 8,
     },
     tierPill: {
         flexDirection: 'row',
@@ -121,7 +138,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 5,
         borderRadius: 20,
-        marginBottom: 8,
     },
     tierPillIcon: {
         width: 18,
@@ -131,6 +147,26 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontFamily: fonts.bold || 'Poppins-Bold',
         fontWeight: 'bold',
+    },
+    coinsPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#FEF3C7',
+        borderWidth: 1,
+        borderColor: '#FDE68A',
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 20,
+    },
+    coinsEmoji: {
+        fontSize: 13,
+    },
+    coinsText: {
+        fontSize: 12,
+        fontFamily: fonts.bold || 'Poppins-Bold',
+        fontWeight: '800',
+        color: '#B45309',
     },
     userRole: {
         fontSize: 13,

@@ -14,7 +14,7 @@ import HowToPlayCard from '../../components/game/HowToPlayCard';
 import GameBottomActionBar from '../../components/game/GameBottomActionBar';
 import images from '../../constants/images';
 import colors from '../../constants/colour';
-import { COLOR_MATCH_LEVELS } from '../../constants/colorMatchData';
+import { COLOR_MATCH_LEVELS } from '../../data/colorMatchData';
 
 export default function ColorMatchDetail({ navigation, route }) {
     const gameTitle = route?.params?.game || route?.params?.title || 'Color Match';

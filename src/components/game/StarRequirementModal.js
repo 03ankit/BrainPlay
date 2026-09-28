@@ -20,11 +20,15 @@ export default function StarRequirementModal({
     currentStars = 0,
     targetLevel = 6,
     previousLevelsRange = 'Levels 1–5',
+    unlockCoinsCost = 300,
+    playerCoins = 0,
+    onUnlockWithCoins,
     onReplay,
     onClose,
 }) {
     const progressRatio = Math.min(1, Math.max(0, currentStars / requiredStars));
     const starsNeeded = Math.max(0, requiredStars - currentStars);
+    const hasEnoughCoins = Number(playerCoins) >= unlockCoinsCost;
 
     return (
         <Modal
@@ -58,18 +62,18 @@ export default function StarRequirementModal({
                     </View>
 
                     {/* Title */}
-                    <Text style={styles.title}>Stars Required!</Text>
+                    <Text style={styles.title}>Unlock Level {targetLevel}</Text>
 
                     {/* Message */}
                     <Text style={styles.message}>
-                        To unlock <Text style={styles.highlightText}>Level {targetLevel}</Text>, you need at least{' '}
-                        <Text style={styles.highlightText}>{requiredStars} Stars</Text> from {previousLevelsRange}.
+                        To unlock Level {targetLevel}, you can earn{' '}
+                        <Text style={styles.highlightText}>{requiredStars} Stars</Text> from {previousLevelsRange} or unlock instantly with coins!
                     </Text>
 
-                    {/* Progress Bar Card */}
+                    {/* Stars Progress Box */}
                     <View style={styles.progressBox}>
                         <View style={styles.progressRow}>
-                            <Text style={styles.progressLabel}>Current Progress</Text>
+                            <Text style={styles.progressLabel}>Stars Progress</Text>
                             <Text style={styles.progressValue}>
                                 {currentStars} / {requiredStars} ⭐
                             </Text>
@@ -79,21 +83,49 @@ export default function StarRequirementModal({
                         </View>
                         <Text style={styles.starsNeededText}>
                             {starsNeeded > 0
-                                ? `Earn ${starsNeeded} more star${starsNeeded > 1 ? 's' : ''} to unlock!`
-                                : 'Ready to unlock!'}
+                                ? `Need ${starsNeeded} more star${starsNeeded > 1 ? 's' : ''} to qualify`
+                                : 'Star requirement fulfilled!'}
                         </Text>
+                    </View>
+
+                    {/* User Coins Balance Pill */}
+                    <View style={styles.coinBalanceRow}>
+                        <Text style={styles.coinBalanceLabel}>Your Balance:</Text>
+                        <View style={styles.coinBadge}>
+                            <Text style={styles.coinBadgeText}>{playerCoins} 🪙</Text>
+                        </View>
                     </View>
 
                     {/* Action Buttons */}
                     <View style={styles.buttonGroup}>
-                        {/* Replay / Level Map Button */}
+                        {/* Option 1: Instant Coin Unlock */}
+                        <TouchableOpacity
+                            style={[
+                                styles.coinUnlockButton,
+                                !hasEnoughCoins && styles.coinUnlockDisabled,
+                            ]}
+                            activeOpacity={0.88}
+                            onPress={onUnlockWithCoins}
+                        >
+                            <Text style={styles.coinUnlockEmoji}>🪙</Text>
+                            <View style={styles.coinUnlockTextGroup}>
+                                <Text style={styles.coinUnlockTitle}>
+                                    Unlock with {unlockCoinsCost} Coins
+                                </Text>
+                                <Text style={styles.coinUnlockSubtitle}>
+                                    {hasEnoughCoins ? 'Instant level unlock' : `Need ${unlockCoinsCost - playerCoins} more coins`}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        {/* Option 2: Default Replay / Earn Stars */}
                         <TouchableOpacity
                             style={styles.replayButton}
                             activeOpacity={0.88}
                             onPress={onReplay || onClose}
                         >
                             <Image source={images.reload} style={styles.buttonIcon} resizeMode="contain" />
-                            <Text style={styles.replayText}>Replay Previous Levels</Text>
+                            <Text style={styles.replayText}>Replay & Earn Stars (Free)</Text>
                         </TouchableOpacity>
 
                         {/* Dismiss / Close Button */}
@@ -120,7 +152,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     card: {
-        width: Math.min(width - 40, 340),
+        width: Math.min(width - 36, 350),
         backgroundColor: colors.white,
         borderRadius: 28,
         padding: 24,
@@ -150,18 +182,18 @@ const styles = StyleSheet.create({
         tintColor: colors.grayDark,
     },
     iconCircle: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
+        width: 68,
+        height: 68,
+        borderRadius: 34,
         backgroundColor: '#FEF3C7',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 16,
+        marginBottom: 14,
         position: 'relative',
     },
     starIcon: {
-        width: 44,
-        height: 44,
+        width: 40,
+        height: 40,
     },
     lockBadge: {
         position: 'absolute',
@@ -180,23 +212,23 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     lockIconText: {
-        fontSize: 13,
+        fontSize: 12,
     },
     title: {
         fontSize: 22,
         fontFamily: fonts.bold,
         fontWeight: '900',
         color: colors.darkBlue,
-        marginBottom: 8,
+        marginBottom: 6,
         textAlign: 'center',
     },
     message: {
-        fontSize: 14,
+        fontSize: 13,
         fontFamily: fonts.medium,
         color: colors.gray,
         textAlign: 'center',
-        lineHeight: 20,
-        marginBottom: 18,
+        lineHeight: 19,
+        marginBottom: 14,
     },
     highlightText: {
         fontFamily: fonts.bold,
@@ -206,17 +238,17 @@ const styles = StyleSheet.create({
     progressBox: {
         width: '100%',
         backgroundColor: '#F8FAFC',
-        borderRadius: 16,
-        padding: 14,
+        borderRadius: 14,
+        padding: 12,
         borderWidth: 1,
         borderColor: '#E2E8F0',
-        marginBottom: 20,
+        marginBottom: 12,
     },
     progressRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 6,
     },
     progressLabel: {
         fontSize: 12,
@@ -235,7 +267,7 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         backgroundColor: '#E2E8F0',
         overflow: 'hidden',
-        marginBottom: 6,
+        marginBottom: 4,
     },
     progressBarFill: {
         height: '100%',
@@ -248,40 +280,103 @@ const styles = StyleSheet.create({
         color: colors.gray,
         textAlign: 'center',
     },
+    coinBalanceRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        paddingHorizontal: 4,
+        marginBottom: 14,
+    },
+    coinBalanceLabel: {
+        fontSize: 13,
+        fontFamily: fonts.medium,
+        color: colors.gray,
+    },
+    coinBadge: {
+        backgroundColor: '#FEF3C7',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#FDE68A',
+    },
+    coinBadgeText: {
+        fontSize: 13,
+        fontFamily: fonts.bold,
+        fontWeight: '800',
+        color: '#B45309',
+    },
     buttonGroup: {
         width: '100%',
         gap: 10,
     },
+    coinUnlockButton: {
+        width: '100%',
+        backgroundColor: '#F59E0B',
+        borderRadius: 18,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        shadowColor: '#F59E0B',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    coinUnlockDisabled: {
+        backgroundColor: '#FBBF24',
+        opacity: 0.75,
+    },
+    coinUnlockEmoji: {
+        fontSize: 24,
+        marginRight: 10,
+    },
+    coinUnlockTextGroup: {
+        flex: 1,
+    },
+    coinUnlockTitle: {
+        fontSize: 15,
+        fontFamily: fonts.bold,
+        fontWeight: '900',
+        color: colors.white,
+    },
+    coinUnlockSubtitle: {
+        fontSize: 11,
+        fontFamily: fonts.medium,
+        color: 'rgba(255, 255, 255, 0.9)',
+    },
     replayButton: {
         width: '100%',
-        height: 52,
-        borderRadius: 18,
+        height: 48,
+        borderRadius: 16,
         backgroundColor: colors.primary,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
         shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 5,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.25,
+        shadowRadius: 6,
+        elevation: 4,
     },
     buttonIcon: {
-        width: 20,
-        height: 20,
+        width: 18,
+        height: 18,
         tintColor: colors.white,
     },
     replayText: {
-        fontSize: 15,
+        fontSize: 14,
         fontFamily: fonts.bold,
         fontWeight: '800',
         color: colors.white,
     },
     closeButton: {
         width: '100%',
-        height: 48,
-        borderRadius: 16,
+        height: 44,
+        borderRadius: 14,
         backgroundColor: colors.white,
         borderWidth: 1.5,
         borderColor: colors.grayBorder,
@@ -289,7 +384,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     closeText: {
-        fontSize: 15,
+        fontSize: 14,
         fontFamily: fonts.bold,
         fontWeight: '700',
         color: colors.gray,
