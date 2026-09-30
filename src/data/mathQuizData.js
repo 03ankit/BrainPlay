@@ -199,10 +199,22 @@ export const MATH_QUIZ_LEVELS = [
         expression: '25 × 12 = ?',
         options: [280, 300, 320, 350],
         correctAnswer: 300,
-        category: 'ROYAL SUMMIT BOSS',
+        category: 'ROYAL SUMMIT',
         timeLimitSeconds: 6,
         difficulty: 'EXPERT',
         points: 2000,
+    },
+    {
+        level: 21,
+        expression: '(45 × 4) - (18 × 6) + 38 = ?',
+        options: [100, 110, 118, 128],
+        correctAnswer: 110,
+        category: 'ROYAL BOSS SUMMIT',
+        timeLimitSeconds: 8,
+        difficulty: 'BOSS',
+        points: 5000,
+        isBoss: true,
+        title: 'Royal Boss Summit',
     },
 ];
 

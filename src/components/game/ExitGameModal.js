@@ -11,6 +11,7 @@ import {
 import fonts from '../../constants/fonts';
 import colors from '../../constants/colour';
 import images from '../../constants/images';
+import HapticService from '../../utils/HapticService';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +22,15 @@ export default function ExitGameModal({
     onConfirmExit,
     onCancel,
 }) {
+    const handleClose = () => {
+        HapticService.selection();
+        onCancel && onCancel();
+    };
+
+    const handleConfirm = () => {
+        HapticService.selection();
+        onConfirmExit && onConfirmExit();
+    };
     return (
         <Modal
             visible={visible}
@@ -35,7 +45,7 @@ export default function ExitGameModal({
                     <TouchableOpacity
                         style={styles.closeIconButton}
                         activeOpacity={0.7}
-                        onPress={onCancel}
+                        onPress={handleClose}
                     >
                         <Image
                             source={images.close}
@@ -63,7 +73,7 @@ export default function ExitGameModal({
                         <TouchableOpacity
                             style={styles.resumeButton}
                             activeOpacity={0.88}
-                            onPress={onCancel}
+                            onPress={handleClose}
                         >
                             <Text style={styles.resumeText}>Resume Game</Text>
                         </TouchableOpacity>
@@ -72,7 +82,7 @@ export default function ExitGameModal({
                         <TouchableOpacity
                             style={styles.exitButton}
                             activeOpacity={0.85}
-                            onPress={onConfirmExit}
+                            onPress={handleConfirm}
                         >
                             <Text style={styles.exitText}>Exit Game</Text>
                         </TouchableOpacity>

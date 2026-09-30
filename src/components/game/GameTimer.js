@@ -66,12 +66,12 @@ export default function GameTimer({ initialSeconds = 15, onTimeUp, questionId, i
     const rightRotate = angle >= 180 ? 0 : 180 - angle;
     const leftRotate = angle >= 180 ? 360 - angle : 180;
 
-    // Dynamic color transition: Purple/Primary -> Amber (50% time) -> Red (Danger 25% or <= 4s)
-    let ringColor = colors.purplePlay || colors.primary;
-    if (progress <= 0.25 || timeLeft <= 4) {
-        ringColor = '#EF4444'; // Danger Red
-    } else if (progress <= 0.5 || timeLeft <= 8) {
-        ringColor = '#F59E0B'; // Warning Amber
+    // Dynamic color transition: Green (>50% time left) -> Orange (25%-50% time left) -> Red (Danger <= 25% time left)
+    let ringColor = '#10B981'; // Green (3 Stars)
+    if (progress <= 0.25) {
+        ringColor = '#EF4444'; // Red (1 Star)
+    } else if (progress <= 0.5) {
+        ringColor = '#F97316'; // Orange (2 Stars)
     }
 
     return (

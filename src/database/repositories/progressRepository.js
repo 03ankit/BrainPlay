@@ -3,15 +3,15 @@ import { executeSql } from '../database';
 /**
  * Calculates coin reward based on stars earned:
  * 3 Stars -> 100 Coins
- * 2 Stars -> 70 Coins
- * 1 Star  -> 50 Coins
+ * 2 Stars -> 50 Coins
+ * 1 Star  -> 10 Coins
  * 0 Stars -> 0 Coins
  */
 export const getCoinRewardForStars = (stars) => {
     const s = Number(stars) || 0;
     if (s >= 3) return 100;
-    if (s === 2) return 70;
-    if (s === 1) return 50;
+    if (s === 2) return 50;
+    if (s === 1) return 10;
     return 0;
 };
 
@@ -181,6 +181,81 @@ export const resetPlayerProgress = async (profileId = 'local_player', gameId = '
     }
 };
 
+export const getTotalStarsEarned = async (profileId = 'local_player') => {
+    try {
+        const pId = String(profileId || 'local_player');
+        const results = await executeSql(
+            'SELECT SUM(stars) as total_stars FROM player_progress WHERE profile_id = ?;',
+            [pId]
+        );
+        if (results && results.rows && results.rows.length > 0) {
+            return Number(results.rows.item(0).total_stars) || 0;
+        }
+        return 0;
+    } catch (error) {
+        console.error('Error fetching total stars earned:', error?.message || error);
+        return 0;
+    }
+};
+
+export const getGameActiveLevel = async (profileId = 'local_player', gameId = '1') => {
+    try {
+        const pId = String(profileId || 'local_player');
+        const gId = String(gameId || '1');
+
+        const progressResults = await executeSql(
+            'SELECT level_number, is_completed, stars FROM player_progress WHERE profile_id = ? AND game_id = ?;',
+            [pId, gId]
+        );
+        const completedSet = new Set();
+        let w1Stars = 0;
+        if (progressResults && progressResults.rows) {
+            for (let i = 0; i < progressResults.rows.length; i++) {
+                const row = progressResults.rows.item(i);
+                if (Number(row.is_completed) === 1) {
+                    const lvl = Number(row.level_number);
+                    completedSet.add(lvl);
+                    if (lvl >= 1 && lvl <= 5) {
+                        w1Stars += Number(row.stars) || 0;
+                    }
+                }
+            }
+        }
+
+        const unlockResults = await executeSql(
+            'SELECT level_number FROM unlocked_levels WHERE profile_id = ? AND game_id = ?;',
+            [pId, gId]
+        );
+        const unlocks = [];
+        if (unlockResults && unlockResults.rows) {
+            for (let i = 0; i < unlockResults.rows.length; i++) {
+                unlocks.push(Number(unlockResults.rows.item(i).level_number));
+            }
+        }
+
+        let highestConsecutive = 0;
+        while (completedSet.has(highestConsecutive + 1)) {
+            highestConsecutive += 1;
+        }
+
+        const isWorld1Qualified = w1Stars >= 11;
+        const isLvl6Unlocked = unlocks.includes(6);
+
+        let activeLvl = highestConsecutive + 1;
+        if (highestConsecutive >= 5 && !isWorld1Qualified && !isLvl6Unlocked && activeLvl > 5) {
+            activeLvl = 5;
+        }
+
+        return {
+            activeLevel: Math.max(1, activeLvl),
+            completedCount: completedSet.size,
+        };
+    } catch (error) {
+        console.error('Error calculating active level for game:', error?.message || error);
+        return { activeLevel: 1, completedCount: 0 };
+    }
+};
+
 export default {
     getCoinRewardForStars,
     savePlayerProgress,
@@ -188,4 +263,6 @@ export default {
     getUnlockedLevels,
     unlockLevelWithCoins,
     resetPlayerProgress,
+    getTotalStarsEarned,
+    getGameActiveLevel,
 };

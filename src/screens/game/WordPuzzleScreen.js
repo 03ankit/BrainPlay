@@ -27,6 +27,7 @@ import streakRepository from '../../database/repositories/streakRepository';
 import fonts from '../../constants/fonts';
 import colors from '../../constants/colour';
 import WORD_PUZZLE_QUESTIONS from '../../data/wordPuzzleQuestions';
+import HapticService from '../../utils/HapticService';
 
 
 const FALLBACK_QUESTIONS = WORD_PUZZLE_QUESTIONS;
@@ -195,6 +196,8 @@ export default function WordPuzzleScreen({ navigation, route }) {
             return; // Don't exceed word length
         }
 
+        HapticService.light();
+
         // Hide selected letter tile in availableLetters grid
         setAvailableLetters((prev) =>
             prev.map((item) =>
@@ -211,6 +214,8 @@ export default function WordPuzzleScreen({ navigation, route }) {
         const letterToRemove = selectedLetters[index];
         if (!letterToRemove) return;
 
+        HapticService.light();
+
         // Unhide letter tile in availableLetters grid
         setAvailableLetters((prev) =>
             prev.map((item) =>
@@ -225,6 +230,7 @@ export default function WordPuzzleScreen({ navigation, route }) {
     // Timer expires callback
     const handleTimeUp = useCallback(() => {
         if (isCompleted || !isFocused) return;
+        HapticService.warning();
         setShowTimeUpModal(true);
     }, [isCompleted, isFocused]);
 
@@ -269,11 +275,21 @@ export default function WordPuzzleScreen({ navigation, route }) {
         });
     }, [navigation, playerLevel]);
 
-    // Hint button callback
+    // Hint button callback (allowed up to half of the word length, e.g. 3 hints for 6 letters)
     const handleHint = () => {
         if (!currentQuestion || !currentQuestion.word) return;
 
         const targetWord = currentQuestion.word.toUpperCase();
+        const maxHints = Math.floor(targetWord.length / 2);
+
+        if (hintsUsed >= maxHints) {
+            Alert.alert(
+                'Hint Limit Reached',
+                `You can only use up to ${maxHints} hints for this ${targetWord.length}-letter word.`
+            );
+            return;
+        }
+
         const nextIndex = selectedLetters.length;
 
         if (nextIndex >= targetWord.length) {
@@ -305,6 +321,7 @@ export default function WordPuzzleScreen({ navigation, route }) {
         const correctWord = currentQuestion.word.toUpperCase();
 
         if (userWord === correctWord) {
+            HapticService.success();
             setIsCompleted(true); // Instantly stops timer
 
             // Calculate elapsed time
@@ -314,14 +331,19 @@ export default function WordPuzzleScreen({ navigation, route }) {
             const formattedTime = `${minsStr}:${secsStr}`;
 
             // Calculate stars based on hint count:
-            // 0 hints = 3 Stars, 1-2 hints = 2 Stars, 3+ hints = 1 Star
+            // 0 hints = 3 Stars
+            // Partial hints (< maxHints) = 2 Stars
+            // All hints used (hintsUsed >= maxHints) = 1 Star
+            const targetWord = currentQuestion.word.toUpperCase();
+            const maxHints = Math.max(1, Math.floor(targetWord.length / 2));
+
             let earnedStars = 3;
             if (hintsUsed === 0) {
                 earnedStars = 3;
-            } else if (hintsUsed === 1 || hintsUsed === 2) {
-                earnedStars = 2;
-            } else {
+            } else if (hintsUsed >= maxHints) {
                 earnedStars = 1;
+            } else {
+                earnedStars = 2;
             }
 
             // Calculate coin rewards: 3 stars -> 100, 2 stars -> 70, 1 star -> 50
@@ -373,11 +395,16 @@ export default function WordPuzzleScreen({ navigation, route }) {
                 game: 'Word Jumble',
             });
         } else {
+            HapticService.error();
             setShowIncorrectModal(true);
         }
     };
 
-    const isSubmitDisabled = selectedLetters.length < (currentQuestion?.word?.length || 0);
+    const targetWordLength = currentQuestion?.word?.length || 0;
+    const isSubmitDisabled = selectedLetters.length < targetWordLength;
+    const maxAllowedHints = Math.floor(targetWordLength / 2);
+    const hintsRemaining = Math.max(0, maxAllowedHints - hintsUsed);
+    const isHintDisabled = hintsRemaining <= 0 || selectedLetters.length >= targetWordLength;
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -419,6 +446,8 @@ export default function WordPuzzleScreen({ navigation, route }) {
                     onHint={handleHint}
                     onSubmit={handleSubmit}
                     isSubmitDisabled={isSubmitDisabled}
+                    isHintDisabled={isHintDisabled}
+                    hintsRemaining={hintsRemaining}
                 />
             </ScrollView>
 

@@ -383,6 +383,31 @@ export const MEMORY_CHALLENGE_LEVELS = [
             'The ultimate memory challenge. Remember quickly, avoid mistakes and adapt to changing positions.',
         cards: ['🦊', '🐱', '🐶', '🐼', '🦁', '🐯', '🐸', '🐵'],
     },
+
+    // =========================
+    // ROYAL BOSS SUMMIT — LEVEL 21
+    // =========================
+
+    {
+        id: 'memory_21',
+        game_id: 'memory_challenge',
+        level_number: 21,
+        title: 'Royal Boss Summit',
+        difficulty: 'Boss',
+        gridSize: 4,
+        pairs: 8,
+        previewTime: 1500,
+        timeLimit: 25,
+        lives: 2,
+        wrongPenalty: 6,
+        shuffleAfterMatches: 1,
+        similarCards: true,
+        isBoss: true,
+        points: 5000,
+        description:
+            'The Ultimate Royal Boss Summit! Ultra-fast 1.5s preview, board shuffles after every match, and only 2 lives!',
+        cards: ['👑', '💎', '🔥', '⚡', '🐉', '⚔️', '🛡️', '🏆'],
+    },
 ];
 
 /**

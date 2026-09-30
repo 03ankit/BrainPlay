@@ -3,17 +3,29 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import fonts from '../../constants/fonts';
 import colors from '../../constants/colour';
 
-export default function GameButtons({ onHint, onSubmit, isSubmitDisabled }) {
+export default function GameButtons({
+    onHint,
+    onSubmit,
+    isSubmitDisabled,
+    isHintDisabled,
+    hintsRemaining,
+}) {
     return (
         <View style={styles.container}>
             {/* Hint Button */}
             <TouchableOpacity
-                style={styles.hintButton}
+                style={[
+                    styles.hintButton,
+                    isHintDisabled && styles.hintButtonDisabled,
+                ]}
                 activeOpacity={0.8}
+                disabled={isHintDisabled}
                 onPress={onHint}
             >
-                <Text style={styles.hintIcon}>💡</Text>
-                <Text style={styles.hintText}>Hint</Text>
+                <Text style={[styles.hintIcon, isHintDisabled && styles.hintIconDisabled]}>💡</Text>
+                <Text style={[styles.hintText, isHintDisabled && styles.hintTextDisabled]}>
+                    {hintsRemaining !== undefined ? `Hint (${hintsRemaining})` : 'Hint'}
+                </Text>
             </TouchableOpacity>
 
             {/* Submit Button */}
@@ -61,14 +73,26 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 2,
     },
+    hintButtonDisabled: {
+        borderColor: '#E2E8F0',
+        backgroundColor: '#F8FAFC',
+        shadowOpacity: 0,
+        elevation: 0,
+    },
     hintIcon: {
         fontSize: 18,
+    },
+    hintIconDisabled: {
+        opacity: 0.4,
     },
     hintText: {
         fontSize: 16,
         fontFamily: fonts.bold,
         fontWeight: '800',
         color: colors.primary,
+    },
+    hintTextDisabled: {
+        color: '#94A3B8',
     },
     submitButton: {
         flex: 1,

@@ -1,8 +1,8 @@
 import { MEMORY_CHALLENGE_LEVELS, getLevelChallenge } from '../src/data/memoryChallengeQuestions';
 
 describe('Memory Challenge Game Data & Logic', () => {
-    test('MEMORY_CHALLENGE_LEVELS has 20 configured levels', () => {
-        expect(MEMORY_CHALLENGE_LEVELS.length).toBe(20);
+    test('MEMORY_CHALLENGE_LEVELS has 21 configured levels', () => {
+        expect(MEMORY_CHALLENGE_LEVELS.length).toBe(21);
 
         MEMORY_CHALLENGE_LEVELS.forEach((level, index) => {
             expect(level.level_number).toBe(index + 1);
@@ -15,8 +15,8 @@ describe('Memory Challenge Game Data & Logic', () => {
         });
     });
 
-    test('getLevelChallenge returns valid level config for levels 1 to 20', () => {
-        for (let lvl = 1; lvl <= 20; lvl++) {
+    test('getLevelChallenge returns valid level config for levels 1 to 21', () => {
+        for (let lvl = 1; lvl <= 21; lvl++) {
             const config = getLevelChallenge(lvl);
             expect(config).toBeDefined();
             expect(config.level_number).toBe(lvl);
@@ -36,7 +36,7 @@ describe('Memory Challenge Game Data & Logic', () => {
         });
 
         expect(deck.length).toBe(pairs * 2);
-        
+
         // Ensure each emoji appears exactly twice
         const counts = {};
         deck.forEach(c => {

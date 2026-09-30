@@ -11,6 +11,7 @@ import {
 import images from '../../constants/images';
 import fonts from '../../constants/fonts';
 import colors from '../../constants/colour';
+import HapticService from '../../utils/HapticService';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +22,16 @@ export default function TimeUpModal({
     onRetry,
     onLevelMap,
 }) {
+    const handleRetryPress = () => {
+        HapticService.selection();
+        onRetry && onRetry();
+    };
+
+    const handleLevelMapPress = () => {
+        HapticService.selection();
+        onLevelMap && onLevelMap();
+    };
+
     const defaultMessage = `Time ran out for Level ${level}. Try again!`;
     return (
         <Modal
@@ -36,7 +47,7 @@ export default function TimeUpModal({
                     <TouchableOpacity
                         style={styles.closeIconButton}
                         activeOpacity={0.7}
-                        onPress={onRetry}
+                        onPress={handleRetryPress}
                     >
                         <Image
                             source={images.close}
@@ -66,7 +77,7 @@ export default function TimeUpModal({
                         <TouchableOpacity
                             style={styles.retryButton}
                             activeOpacity={0.88}
-                            onPress={onRetry}
+                            onPress={handleRetryPress}
                         >
                             <Image source={images.reload} style={styles.reloadIcon} resizeMode="contain" />
                             <Text style={styles.retryText}>Retry</Text>
@@ -76,7 +87,7 @@ export default function TimeUpModal({
                         <TouchableOpacity
                             style={styles.levelMapButton}
                             activeOpacity={0.85}
-                            onPress={onLevelMap}
+                            onPress={handleLevelMapPress}
                         >
                             <Text style={styles.levelMapText}>Level Map</Text>
                         </TouchableOpacity>

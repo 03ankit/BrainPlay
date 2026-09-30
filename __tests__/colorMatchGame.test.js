@@ -13,12 +13,14 @@ describe('Color Match Game & Stroop Engine Unit Tests (1 Level = 1 Game)', () =>
             expect(STROOP_COLORS.BLUE.hex).toBe('#3B82F6');
         });
 
-        test('provides 20 configured levels with 1 challenge per level', () => {
-            expect(COLOR_MATCH_LEVELS.length).toBe(20);
+        test('provides 21 configured levels with 1 challenge per level', () => {
+            expect(COLOR_MATCH_LEVELS.length).toBe(21);
             expect(COLOR_MATCH_LEVELS[0].level).toBe(1);
             expect(COLOR_MATCH_LEVELS[0].difficulty).toBe('EASY');
             expect(COLOR_MATCH_LEVELS[19].level).toBe(20);
             expect(COLOR_MATCH_LEVELS[19].difficulty).toBe('EXPERT');
+            expect(COLOR_MATCH_LEVELS[20].level).toBe(21);
+            expect(COLOR_MATCH_LEVELS[20].difficulty).toBe('BOSS');
         });
     });
 

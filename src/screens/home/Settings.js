@@ -17,6 +17,7 @@ import fonts from '../../constants/fonts';
 import images from '../../constants/images';
 import { AuthContext } from '../../context/AuthContext';
 import playerRepository from '../../database/repositories/playerRepository';
+import HapticService from '../../utils/HapticService';
 
 import PersonalDetailsCard from '../../components/PersonalDetailsCard';
 
@@ -35,7 +36,7 @@ export default function Settings({ onBack, navigation }) {
     // Toggle states for Audio & Feedback
     const [soundEffects, setSoundEffects] = useState(true);
     const [bgMusic, setBgMusic] = useState(true);
-    const [vibration, setVibration] = useState(true);
+    const [vibration, setVibration] = useState(() => HapticService.isVibrationEnabled());
 
     // Logout Modal state
     const [logoutModalVisible, setLogoutModalVisible] = useState(false);
@@ -43,10 +44,12 @@ export default function Settings({ onBack, navigation }) {
     // Save Details Success Modal state
     const [saveModalVisible, setSaveModalVisible] = useState(false);
 
-    // Load live profile from SQLite
+    // Load live profile from SQLite and sync vibration
     useFocusEffect(
         useCallback(() => {
             let isActive = true;
+            setVibration(HapticService.isVibrationEnabled());
+
             const loadProfile = async () => {
                 try {
                     const profile = await playerRepository.getPlayerProfile('local_player');
@@ -180,7 +183,13 @@ export default function Settings({ onBack, navigation }) {
                             </View>
                             <Switch
                                 value={vibration}
-                                onValueChange={setVibration}
+                                onValueChange={(val) => {
+                                    setVibration(val);
+                                    HapticService.setVibrationEnabled(val);
+                                    if (val) {
+                                        HapticService.heavy();
+                                    }
+                                }}
                                 trackColor={{ false: '#CBD5E1', true: colors.purplePlay || '#6A4BFF' }}
                                 thumbColor={colors.white}
                             />

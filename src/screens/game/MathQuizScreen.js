@@ -21,6 +21,7 @@ import progressRepository from '../../database/repositories/progressRepository';
 import playerRepository from '../../database/repositories/playerRepository';
 import streakRepository from '../../database/repositories/streakRepository';
 import { getLevelChallenge } from '../../data/mathQuizData';
+import HapticService from '../../utils/HapticService';
 
 const { width } = Dimensions.get('window');
 const OPTION_CARD_WIDTH = (width - 40 - 14) / 2;
@@ -78,12 +79,14 @@ export default function MathQuizScreen({ navigation, route }) {
     // Timer expires
     const handleTimeUp = useCallback(() => {
         if (isCompleted || !isFocused) return;
+        HapticService.warning();
         setShowTimeUpModal(true);
     }, [isCompleted, isFocused]);
 
     // Handle Option Selection
     const handleSelectOption = (option) => {
         if (isProcessingRef.current || isCompleted) return;
+        HapticService.light();
         setSelectedOption(option);
     };
 
@@ -95,6 +98,7 @@ export default function MathQuizScreen({ navigation, route }) {
         const isCorrect = Number(selectedOption) === Number(currentQuestion.correctAnswer);
 
         if (isCorrect) {
+            HapticService.success();
             setIsCompleted(true);
 
             // Elapsed time calculation
@@ -106,10 +110,17 @@ export default function MathQuizScreen({ navigation, route }) {
             const secs = String(elapsedSecs % 60).padStart(2, '0');
             const formattedTime = `${mins}:${secs}`;
 
-            // Stars: 3 stars if quick, 2 stars if <= time limit
+            // Stars calculation matching timer ring color:
+            // Green (> 50% time left): 3 Stars
+            // Orange (25% - 50% time left): 2 Stars
+            // Red (<= 25% time left): 1 Star
             let earnedStars = 3;
-            if (elapsedSecs > initialSeconds * 0.7) {
-                earnedStars = 2;
+            if (elapsedSecs > initialSeconds * 0.75) {
+                earnedStars = 1; // Red timer zone
+            } else if (elapsedSecs > initialSeconds * 0.5) {
+                earnedStars = 2; // Orange timer zone
+            } else {
+                earnedStars = 3; // Green timer zone
             }
 
             const pointsEarned = currentQuestion.points || (earnedStars * 150);
@@ -151,7 +162,8 @@ export default function MathQuizScreen({ navigation, route }) {
                 });
             }, 300);
         } else {
-            // Incorrect answer - show modal immediately without extra shake
+            // Incorrect answer
+            HapticService.error();
             setShowIncorrectModal(true);
             isProcessingRef.current = false;
         }
@@ -159,6 +171,7 @@ export default function MathQuizScreen({ navigation, route }) {
 
     // Retry callback
     const handleRetry = () => {
+        HapticService.selection();
         setShowTimeUpModal(false);
         setShowIncorrectModal(false);
         setIsCompleted(false);

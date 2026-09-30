@@ -16,8 +16,12 @@ import images from '../../constants/images';
 import fonts from '../../constants/fonts';
 import colors from '../../constants/colour';
 import StarRequirementModal from '../../components/game/StarRequirementModal';
+import PurchaseSuccessModal from '../../components/game/PurchaseSuccessModal';
+import InsufficientCoinsModal from '../../components/game/InsufficientCoinsModal';
 import progressRepository from '../../database/repositories/progressRepository';
+import questionRepository from '../../database/repositories/questionRepository';
 import playerRepository from '../../database/repositories/playerRepository';
+import HapticService from '../../utils/HapticService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -35,8 +39,25 @@ export default function LevelCompleteScreen({ navigation, route }) {
         ? Number(route?.params?.coins)
         : progressRepository.getCoinRewardForStars(stars);
 
-    // Star requirement modal state
+    // Dynamic total levels state (queried from SQLite questions table)
+    const [maxLevels, setMaxLevels] = useState(
+        Number(route?.params?.totalLevels) || 20
+    );
+
+    // Modals state
     const [showStarModal, setShowStarModal] = useState(false);
+    const [purchaseSuccessModal, setPurchaseSuccessModal] = useState({
+        visible: false,
+        level: 6,
+        cost: 300,
+        remainingCoins: 0,
+    });
+    const [insufficientCoinsModal, setInsufficientCoinsModal] = useState({
+        visible: false,
+        level: 6,
+        requiredCoins: 300,
+        currentCoins: 0,
+    });
     const [world1Stars, setWorld1Stars] = useState(0);
     const [playerCoins, setPlayerCoins] = useState(100);
     const [unlockedLevels, setUnlockedLevels] = useState([]);
@@ -49,10 +70,16 @@ export default function LevelCompleteScreen({ navigation, route }) {
         ? '4'
         : '1';
 
-    // Fetch live progress, unlocked levels, and profile coins
+    // Fetch live progress, unlocked levels, dynamic total levels, and profile coins
     const fetchGameStatus = useCallback(async () => {
         try {
-            // 1. Calculate World 1 (levels 1-5) total stars
+            // 1. Fetch dynamic total levels available for this game
+            const dynamicTotal = await questionRepository.getTotalLevelsForGame(gameId);
+            if (dynamicTotal && dynamicTotal > 0) {
+                setMaxLevels(dynamicTotal);
+            }
+
+            // 2. Calculate World 1 (levels 1-5) total stars
             const progressList = await progressRepository.getPlayerProgress('local_player', gameId);
             let total = 0;
             if (Array.isArray(progressList)) {
@@ -65,11 +92,11 @@ export default function LevelCompleteScreen({ navigation, route }) {
             }
             setWorld1Stars(total);
 
-            // 2. Fetch coin unlocks
+            // 3. Fetch coin unlocks
             const unlocks = await progressRepository.getUnlockedLevels('local_player', gameId);
             setUnlockedLevels(unlocks || []);
 
-            // 3. Fetch profile coins
+            // 4. Fetch profile coins
             const profile = await playerRepository.getPlayerProfile('local_player');
             if (profile) {
                 setPlayerCoins(Number(profile.coins) || 0);
@@ -83,11 +110,15 @@ export default function LevelCompleteScreen({ navigation, route }) {
     }, [gameId]);
 
     useEffect(() => {
+        HapticService.success();
         fetchGameStatus();
     }, [fetchGameStatus]);
 
+    const isLastLevel = levelNumber >= maxLevels;
+
     // Proceed to next level helper
     const navigateToGameLevel = (lvl) => {
+        HapticService.selection();
         const targetGameScreen = gameTitle === 'Color Match'
             ? 'ColorMatchScreen'
             : (gameTitle === 'Math Quiz' || gameTitle === 'Maths Challenge')
@@ -108,6 +139,22 @@ export default function LevelCompleteScreen({ navigation, route }) {
 
     // Continue to Next Level
     const handleContinue = async () => {
+        HapticService.selection();
+
+        if (levelNumber >= maxLevels) {
+            Alert.alert(
+                'Game Complete! 🏆',
+                `Congratulations! You have completed all ${maxLevels} levels of ${gameTitle}!`,
+                [
+                    {
+                        text: 'Back to Level Map',
+                        onPress: handleHome,
+                    },
+                ]
+            );
+            return;
+        }
+
         const nextLevel = levelNumber + 1;
 
         // If completing Level 5 and moving to Level 6:
@@ -136,37 +183,38 @@ export default function LevelCompleteScreen({ navigation, route }) {
         });
 
         if (result.success) {
+            HapticService.success();
             setShowStarModal(false);
             setPlayerCoins(result.remainingCoins);
             setUnlockedLevels((prev) => [...prev, 6]);
-            Alert.alert(
-                'Level Unlocked! 🎉',
-                `You unlocked Level 6 with 300 coins. Balance: ${result.remainingCoins} 🪙`,
-                [
-                    {
-                        text: "Play Level 6 ▶",
-                        onPress: () => navigateToGameLevel(6),
-                    },
-                ]
-            );
+            setPurchaseSuccessModal({
+                visible: true,
+                level: 6,
+                cost: 300,
+                remainingCoins: result.remainingCoins,
+            });
         } else {
-            Alert.alert(
-                'Insufficient Coins',
-                result.message || 'You need 300 coins to unlock Level 6. Replay previous levels to earn more coins!'
-            );
+            HapticService.error();
+            setInsufficientCoinsModal({
+                visible: true,
+                level: 6,
+                requiredCoins: 300,
+                currentCoins: playerCoins,
+            });
         }
     };
 
     // Navigate to Level Map / Home
-    const handleHome = () => {
+    const handleHome = useCallback(() => {
+        HapticService.selection();
         navigation.reset({
             index: 1,
             routes: [
                 { name: 'BottomNavigation' },
-                { name: 'SelectLevel', params: { level: levelNumber + 1, game: gameTitle } },
+                { name: 'SelectLevel', params: { level: Math.min(levelNumber + (levelNumber < maxLevels ? 1 : 0), maxLevels), game: gameTitle } },
             ],
         });
-    };
+    }, [navigation, levelNumber, gameTitle, maxLevels]);
 
     // Intercept hardware back button to navigate home
     useFocusEffect(
@@ -178,7 +226,7 @@ export default function LevelCompleteScreen({ navigation, route }) {
 
             const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
             return () => subscription.remove();
-        }, [levelNumber, gameTitle])
+        }, [handleHome])
     );
 
     return (
@@ -204,9 +252,11 @@ export default function LevelCompleteScreen({ navigation, route }) {
 
                     {/* Level Banner Subtitle & Title */}
                     <Text style={styles.levelSubtitle}>
-                        LEVEL {levelNumber} COMPLETE
+                        {levelNumber >= 21 ? 'ROYAL BOSS SUMMIT COMPLETE 👑' : `LEVEL ${levelNumber} COMPLETE`}
                     </Text>
-                    <Text style={styles.mainTitle}>{title}</Text>
+                    <Text style={styles.mainTitle}>
+                        {levelNumber >= 21 ? 'Ultimate Conqueror! 🏆' : title}
+                    </Text>
 
                     {/* Earned Stars Rating */}
                     <View style={styles.starsRow}>
@@ -256,13 +306,15 @@ export default function LevelCompleteScreen({ navigation, route }) {
 
                     {/* Action Buttons */}
                     <View style={styles.buttonGroup}>
-                        {/* Continue Button */}
+                        {/* Continue / Finish Button */}
                         <TouchableOpacity
                             style={styles.continueButton}
                             activeOpacity={0.88}
                             onPress={handleContinue}
                         >
-                            <Text style={styles.continueText}>Continue</Text>
+                            <Text style={styles.continueText}>
+                                {isLastLevel ? 'Finish Game' : 'Continue'}
+                            </Text>
                         </TouchableOpacity>
 
                         {/* Home Button */}
@@ -290,6 +342,35 @@ export default function LevelCompleteScreen({ navigation, route }) {
                 onUnlockWithCoins={handleUnlockWithCoins}
                 onReplay={handleHome}
                 onClose={() => setShowStarModal(false)}
+            />
+
+            {/* Level Purchase Success Custom Modal */}
+            <PurchaseSuccessModal
+                visible={purchaseSuccessModal.visible}
+                level={purchaseSuccessModal.level}
+                cost={purchaseSuccessModal.cost}
+                remainingCoins={purchaseSuccessModal.remainingCoins}
+                onPlayLevel={() => {
+                    setPurchaseSuccessModal((prev) => ({ ...prev, visible: false }));
+                    navigateToGameLevel(6);
+                }}
+                onClose={() => {
+                    setPurchaseSuccessModal((prev) => ({ ...prev, visible: false }));
+                    handleHome();
+                }}
+            />
+
+            {/* Insufficient Coins Custom Modal */}
+            <InsufficientCoinsModal
+                visible={insufficientCoinsModal.visible}
+                level={insufficientCoinsModal.level}
+                requiredCoins={insufficientCoinsModal.requiredCoins}
+                currentCoins={insufficientCoinsModal.currentCoins}
+                onReplay={() => {
+                    setInsufficientCoinsModal((prev) => ({ ...prev, visible: false }));
+                    handleHome();
+                }}
+                onClose={() => setInsufficientCoinsModal((prev) => ({ ...prev, visible: false }))}
             />
         </View>
     );

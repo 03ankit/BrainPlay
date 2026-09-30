@@ -65,7 +65,32 @@ export const getQuestionByLevel = async (gameId = '1', levelNumber = 1) => {
     }
 };
 
+// Fetch dynamic total levels available for a specific game
+export const getTotalLevelsForGame = async (gameId = '1') => {
+    try {
+        const results = await executeSql(
+            'SELECT COUNT(DISTINCT level_number) as total_count, MAX(level_number) as max_level FROM questions WHERE game_id = ?;',
+            [gameId]
+        );
+
+        if (results.rows.length > 0) {
+            const item = results.rows.item(0);
+            const maxLvl = Number(item.max_level) || 0;
+            const totalCount = Number(item.total_count) || 0;
+            const computed = Math.max(maxLvl, totalCount);
+            if (computed > 0) {
+                return computed;
+            }
+        }
+        return 20;
+    } catch (error) {
+        console.error('Error fetching total levels for game:', error);
+        return 20;
+    }
+};
+
 export default {
     getQuestionsForGame,
     getQuestionByLevel,
+    getTotalLevelsForGame,
 };

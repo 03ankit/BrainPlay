@@ -16,14 +16,14 @@ describe('Coin Reward and Level Unlock Mechanism', () => {
             expect(getCoinRewardForStars('3')).toBe(100);
         });
 
-        test('2 stars awards 70 coins', () => {
-            expect(getCoinRewardForStars(2)).toBe(70);
-            expect(getCoinRewardForStars('2')).toBe(70);
+        test('2 stars awards 50 coins', () => {
+            expect(getCoinRewardForStars(2)).toBe(50);
+            expect(getCoinRewardForStars('2')).toBe(50);
         });
 
-        test('1 star awards 50 coins', () => {
-            expect(getCoinRewardForStars(1)).toBe(50);
-            expect(getCoinRewardForStars('1')).toBe(50);
+        test('1 star awards 10 coins', () => {
+            expect(getCoinRewardForStars(1)).toBe(10);
+            expect(getCoinRewardForStars('1')).toBe(10);
         });
 
         test('0 stars or invalid awards 0 coins', () => {

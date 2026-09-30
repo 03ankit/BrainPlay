@@ -23,6 +23,7 @@ import progressRepository from '../../database/repositories/progressRepository';
 import playerRepository from '../../database/repositories/playerRepository';
 import streakRepository from '../../database/repositories/streakRepository';
 import { getLevelChallenge } from '../../data/memoryChallengeQuestions';
+import HapticService from '../../utils/HapticService';
 
 const { width } = Dimensions.get('window');
 const GRID_PADDING = 20;
@@ -137,6 +138,7 @@ export default function MemoryChallengeScreen({ navigation, route }) {
     // Timer expires callback
     const handleTimeUp = useCallback(() => {
         if (isCompleted || isPreviewing || !isFocused) return;
+        HapticService.warning();
         setShowTimeUpModal(true);
     }, [isCompleted, isPreviewing, isFocused]);
 
@@ -145,6 +147,8 @@ export default function MemoryChallengeScreen({ navigation, route }) {
         if (isPreviewing || isEvaluatingRef.current || isCompleted) return;
         if (flippedIndices.includes(index)) return;
         if (matchedCardIds.has(deck[index].id)) return;
+
+        HapticService.light();
 
         if (flippedIndices.length === 0) {
             // First card flipped
@@ -161,6 +165,7 @@ export default function MemoryChallengeScreen({ navigation, route }) {
 
             if (firstCard.emoji === secondCard.emoji) {
                 // MATCH!
+                HapticService.medium();
                 setTimeout(() => {
                     setMatchedCardIds((prev) => {
                         const next = new Set(prev);
@@ -178,6 +183,7 @@ export default function MemoryChallengeScreen({ navigation, route }) {
                 }, 350);
             } else {
                 // MISMATCH
+                HapticService.error();
                 setTimeout(() => {
                     setFlippedIndices([]);
                     isEvaluatingRef.current = false;
@@ -196,6 +202,7 @@ export default function MemoryChallengeScreen({ navigation, route }) {
 
     // Level Complete / Win Handler
     const handleLevelWin = async () => {
+        HapticService.success();
         setIsCompleted(true);
 
         const elapsedSecs = Math.max(
@@ -206,10 +213,17 @@ export default function MemoryChallengeScreen({ navigation, route }) {
         const secs = String(elapsedSecs % 60).padStart(2, '0');
         const formattedTime = `${mins}:${secs}`;
 
-        // Star calculation based on remaining lives and time taken
+        // Star calculation based on timer color and lives:
+        // Green timer (> 50% time left & full lives): 3 Stars
+        // Orange timer (25% - 50% time left) or 2 lives: 2 Stars
+        // Red timer (<= 25% time left) or 1 life left: 1 Star
         let earnedStars = 3;
         if (livesLeft <= 1 || elapsedSecs > initialSeconds * 0.75) {
+            earnedStars = 1;
+        } else if (elapsedSecs > initialSeconds * 0.5 || (initialLives >= 3 && livesLeft === 2)) {
             earnedStars = 2;
+        } else {
+            earnedStars = 3;
         }
 
         const pointsEarned = totalPairs * 150 + (livesLeft * 100);

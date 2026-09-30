@@ -246,6 +246,20 @@ export const WORD_PUZZLE_QUESTIONS = [
         difficulty: 'HARD',
         points: 400,
     },
+    // --- ROYAL BOSS SUMMIT LEVEL (21) ---
+    {
+        id: 'q_21',
+        game_id: '1',
+        category_id: 'cat_1',
+        level_number: 21,
+        word: 'LABYRINTH',
+        clue: 'A complex maze of passages; the Ultimate Royal Boss Challenge.',
+        time_limit_seconds: 30,
+        options: ['L', 'A', 'B', 'Y', 'R', 'I', 'N', 'T', 'H', 'S', 'P', 'X'],
+        difficulty: 'BOSS',
+        points: 5000,
+        isBoss: true,
+    },
 ];
 
 export default WORD_PUZZLE_QUESTIONS;

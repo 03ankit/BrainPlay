@@ -21,6 +21,7 @@ import progressRepository from '../../database/repositories/progressRepository';
 import playerRepository from '../../database/repositories/playerRepository';
 import streakRepository from '../../database/repositories/streakRepository';
 import { getLevelChallenge } from '../../data/colorMatchData';
+import HapticService from '../../utils/HapticService';
 
 const { width } = Dimensions.get('window');
 
@@ -77,6 +78,7 @@ export default function ColorMatchScreen({ navigation, route }) {
     // Timer expires callback
     const handleTimeUp = useCallback(() => {
         if (isCompleted || !isFocused) return;
+        HapticService.warning();
         setShowTimeUpModal(true);
     }, [isCompleted, isFocused]);
 
@@ -88,6 +90,7 @@ export default function ColorMatchScreen({ navigation, route }) {
         const isCorrect = userPressedMatch === currentQuestion.isMatch;
 
         if (isCorrect) {
+            HapticService.success();
             setIsCompleted(true);
 
             // Calculate elapsed time
@@ -99,10 +102,17 @@ export default function ColorMatchScreen({ navigation, route }) {
             const secs = String(elapsedSecs % 60).padStart(2, '0');
             const formattedTime = `${mins}:${secs}`;
 
-            // Stars calculation: 3 stars if answered quickly, 2 stars if answered within time
+            // Stars calculation matching timer ring color:
+            // Green (> 50% time left): 3 Stars
+            // Orange (25% - 50% time left): 2 Stars
+            // Red (<= 25% time left): 1 Star
             let earnedStars = 3;
-            if (elapsedSecs > initialSeconds * 0.7) {
-                earnedStars = 2;
+            if (elapsedSecs > initialSeconds * 0.75) {
+                earnedStars = 1; // Red timer zone
+            } else if (elapsedSecs > initialSeconds * 0.5) {
+                earnedStars = 2; // Orange timer zone
+            } else {
+                earnedStars = 3; // Green timer zone
             }
 
             const pointsEarned = earnedStars * 100;
@@ -144,7 +154,8 @@ export default function ColorMatchScreen({ navigation, route }) {
                 });
             }, 300);
         } else {
-            // Incorrect answer - show modal immediately without extra shake
+            // Incorrect answer
+            HapticService.error();
             setShowIncorrectModal(true);
             isProcessingRef.current = false;
         }
@@ -152,6 +163,7 @@ export default function ColorMatchScreen({ navigation, route }) {
 
     // Retry callbacks
     const handleRetry = () => {
+        HapticService.selection();
         setShowTimeUpModal(false);
         setShowIncorrectModal(false);
         setIsCompleted(false);

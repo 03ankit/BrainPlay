@@ -189,7 +189,7 @@ export const WorldBanner = ({ worldNumber, title, subtitle, icon = '🍬' }) => 
 /**
  * World 4 Summit Boss Card at Top
  */
-export const BossSummitCard = ({ onPlayBoss }) => {
+export const BossSummitCard = ({ onPlayBoss, isUnlocked = false }) => {
     return (
         <View style={styles.bossSummitContainer}>
             {/* Header Pill */}
@@ -200,27 +200,35 @@ export const BossSummitCard = ({ onPlayBoss }) => {
 
             {/* Boss Node Circle */}
             <TouchableOpacity
-                activeOpacity={0.9}
+                activeOpacity={0.85}
                 onPress={onPlayBoss}
                 style={styles.bossNodeTouchable}
             >
-                <View style={styles.bossBadgeWrapper}>
-                    <Text style={styles.bossBadgeText} numberOfLines={1}>👑 BOSS</Text>
+                <View style={[styles.bossBadgeWrapper, isUnlocked && styles.bossBadgeWrapperUnlocked]}>
+                    <Text style={styles.bossBadgeText} numberOfLines={1}>
+                        {isUnlocked ? '👑 BOSS READY' : '👑 BOSS'}
+                    </Text>
                 </View>
 
-                <View style={styles.bossOuterRing}>
-                    <View style={styles.bossInnerCircle}>
-                        <Text style={styles.bossCastleIcon}>🏰</Text>
-                        <Text style={styles.bossWarpLabel} numberOfLines={1}>WARP</Text>
+                <View style={[styles.bossOuterRing, !isUnlocked && styles.bossOuterRingLocked]}>
+                    <View style={[styles.bossInnerCircle, !isUnlocked && styles.bossInnerCircleLocked]}>
+                        <Text style={styles.bossCastleIcon}>{isUnlocked ? '👑' : '🏰'}</Text>
+                        <Text style={styles.bossWarpLabel} numberOfLines={1}>
+                            {isUnlocked ? 'FIGHT' : 'WARP'}
+                        </Text>
                         <Text style={styles.bossLabel} numberOfLines={1}>BOSS</Text>
                     </View>
                 </View>
             </TouchableOpacity>
 
             {/* Secret key note banner */}
-            <View style={styles.bossSecretNote}>
-                <Text style={styles.bossSecretIcon}>🔑</Text>
-                <Text style={styles.bossSecretText} numberOfLines={1}>The key is hidden somewhere in the trees</Text>
+            <View style={[styles.bossSecretNote, isUnlocked && styles.bossSecretNoteUnlocked]}>
+                <Text style={styles.bossSecretIcon}>{isUnlocked ? '⚔️' : '🔒'}</Text>
+                <Text style={[styles.bossSecretText, isUnlocked && styles.bossSecretTextUnlocked]} numberOfLines={1}>
+                    {isUnlocked
+                        ? 'Summit Unlocked! Tap to challenge the Boss!'
+                        : 'Complete Level 20 to unlock the Boss Summit'}
+                </Text>
             </View>
         </View>
     );
@@ -621,6 +629,10 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
         borderColor: colors.white,
     },
+    bossBadgeWrapperUnlocked: {
+        backgroundColor: '#DC2626',
+        borderColor: '#FEF08A',
+    },
     bossBadgeText: {
         color: colors.white,
         fontSize: 9,
@@ -641,6 +653,10 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
         elevation: 7,
     },
+    bossOuterRingLocked: {
+        backgroundColor: '#94A3B8',
+        shadowOpacity: 0.1,
+    },
     bossInnerCircle: {
         width: 64,
         height: 64,
@@ -650,6 +666,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderWidth: 1.5,
         borderColor: colors.world4.borderLight,
+    },
+    bossInnerCircleLocked: {
+        backgroundColor: '#64748B',
+        borderColor: '#94A3B8',
     },
     bossCastleIcon: {
         fontSize: 18,
@@ -684,6 +704,10 @@ const styles = StyleSheet.create({
         elevation: 2,
         maxWidth: width - 48,
     },
+    bossSecretNoteUnlocked: {
+        backgroundColor: '#FEF2F2',
+        borderColor: '#FCA5A5',
+    },
     bossSecretIcon: {
         fontSize: 11,
     },
@@ -692,6 +716,11 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontFamily: fonts.medium,
         fontWeight: '600',
+    },
+    bossSecretTextUnlocked: {
+        color: '#DC2626',
+        fontFamily: fonts.bold,
+        fontWeight: '700',
     },
 });
 

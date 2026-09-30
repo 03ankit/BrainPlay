@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -7,12 +7,15 @@ import {
     TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import colors from '../../constants/colour';
 import fonts from '../../constants/fonts';
+import progressRepository from '../../database/repositories/progressRepository';
+import questionRepository from '../../database/repositories/questionRepository';
 
 const categories = ['All Games', 'Speed', 'Word Games', 'Memory', 'Brain & Logic'];
 
-const allGamesList = [
+const baseGamesList = [
     {
         id: '1',
         title: 'Word Jumble',
@@ -24,7 +27,7 @@ const allGamesList = [
         color: colors.purplePlay,
         desc: 'Unscramble letters to reveal secret words',
         totalLevels: 20,
-        currentLevel: 12,
+        currentLevel: 1,
     },
     {
         id: '2',
@@ -37,7 +40,7 @@ const allGamesList = [
         color: colors.rose,
         desc: 'Test your reflexes by matching dynamic color patterns',
         totalLevels: 20,
-        currentLevel: 5,
+        currentLevel: 1,
     },
     {
         id: '3',
@@ -63,17 +66,54 @@ const allGamesList = [
         color: colors.purpleLight,
         desc: 'Memorize positions and find matching pairs',
         totalLevels: 20,
-        currentLevel: 8,
+        currentLevel: 1,
     },
 ];
 
 export default function Game({ navigation }) {
     const insets = useSafeAreaInsets();
     const [selectedCategory, setSelectedCategory] = useState('All Games');
+    const [totalStars, setTotalStars] = useState(0);
+    const [gamesList, setGamesList] = useState(baseGamesList);
+
+    // Refresh dynamic star counts and active levels whenever screen is focused
+    const loadGameProgress = useCallback(async () => {
+        try {
+            const stars = await progressRepository.getTotalStarsEarned('local_player');
+            setTotalStars(stars || 0);
+
+            const updatedGames = await Promise.all(
+                baseGamesList.map(async (g) => {
+                    try {
+                        const { activeLevel } = await progressRepository.getGameActiveLevel('local_player', g.id);
+                        const totalLvl = await questionRepository.getTotalLevelsForGame(g.id);
+                        return {
+                            ...g,
+                            currentLevel: activeLevel || 1,
+                            totalLevels: totalLvl || 20,
+                        };
+                    } catch (e) {
+                        return g;
+                    }
+                })
+            );
+            setGamesList(updatedGames);
+        } catch (err) {
+            console.error('Error loading game progress in Game screen:', err);
+        }
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            loadGameProgress();
+        }, [loadGameProgress])
+    );
 
     const filteredGames = selectedCategory === 'All Games'
-        ? allGamesList
-        : allGamesList.filter(g => g.category === selectedCategory);
+        ? gamesList
+        : gamesList.filter(g => g.category === selectedCategory);
+
+    const featuredGame = gamesList[0] || baseGamesList[0];
 
     const handleSelectGame = (game) => {
         navigation.navigate('SelectLevel', {
@@ -93,14 +133,14 @@ export default function Game({ navigation }) {
                     <View style={styles.titleRow}>
                         <Text style={styles.headerTitle}>Arcade Arena</Text>
                         <View style={styles.liveBadge}>
-                            <Text style={styles.liveText}>{allGamesList.length} GAMES</Text>
+                            <Text style={styles.liveText}>{gamesList.length} GAMES</Text>
                         </View>
                     </View>
                     <Text style={styles.headerSubtitle}>Select any game to view its Level Map</Text>
                 </View>
 
                 <View style={styles.headerStatPill}>
-                    <Text style={styles.headerStatText}>⭐ 148 Stars</Text>
+                    <Text style={styles.headerStatText}>⭐ {totalStars} Stars</Text>
                 </View>
             </View>
 
@@ -111,14 +151,14 @@ export default function Game({ navigation }) {
                 <TouchableOpacity
                     style={styles.featuredCard}
                     activeOpacity={0.9}
-                    onPress={() => handleSelectGame(allGamesList[0])}
+                    onPress={() => handleSelectGame(featuredGame)}
                 >
                     <View style={styles.featuredBadgeRow}>
                         <View style={styles.featuredTag}>
                             <Text style={styles.featuredTagText}>FEATURED ODYSSEY</Text>
                         </View>
                         <View style={styles.featuredActivePill}>
-                            <Text style={styles.featuredActiveText}>Lv. 12 ACTIVE</Text>
+                            <Text style={styles.featuredActiveText}>Lv. {featuredGame.currentLevel} ACTIVE</Text>
                         </View>
                     </View>
                     <Text style={styles.featuredTitle}>Word Jumble Odyssey</Text>

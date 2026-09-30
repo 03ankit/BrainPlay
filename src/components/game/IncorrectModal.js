@@ -11,6 +11,7 @@ import {
 import images from '../../constants/images';
 import fonts from '../../constants/fonts';
 import colors from '../../constants/colour';
+import HapticService from '../../utils/HapticService';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +22,16 @@ export default function IncorrectModal({
     onTryAgain,
     onLevelMap,
 }) {
+    const handleTryAgainPress = () => {
+        HapticService.selection();
+        onTryAgain && onTryAgain();
+    };
+
+    const handleLevelMapPress = () => {
+        HapticService.selection();
+        onLevelMap && onLevelMap();
+    };
+
     const defaultMessage = `That is not the correct answer for Level ${level}. Try again!`;
     return (
         <Modal
@@ -36,7 +47,7 @@ export default function IncorrectModal({
                     <TouchableOpacity
                         style={styles.closeIconButton}
                         activeOpacity={0.7}
-                        onPress={onTryAgain}
+                        onPress={handleTryAgainPress}
                     >
                         <Image
                             source={images.close}
@@ -62,7 +73,7 @@ export default function IncorrectModal({
                         <TouchableOpacity
                             style={styles.tryAgainButton}
                             activeOpacity={0.88}
-                            onPress={onTryAgain}
+                            onPress={handleTryAgainPress}
                         >
                             <Image source={images.reload} style={styles.reloadIcon} resizeMode="contain" />
                             <Text style={styles.tryAgainText}>Try Again</Text>
@@ -72,7 +83,7 @@ export default function IncorrectModal({
                         <TouchableOpacity
                             style={styles.levelMapButton}
                             activeOpacity={0.85}
-                            onPress={onLevelMap}
+                            onPress={handleLevelMapPress}
                         >
                             <Text style={styles.levelMapText}>Level Map</Text>
                         </TouchableOpacity>

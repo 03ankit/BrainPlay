@@ -13,6 +13,7 @@ import colors from '../../constants/colour';
 import fonts from '../../constants/fonts';
 import images from '../../constants/images';
 import streakRepository, { STREAK_TIERS, getStreakTier } from '../../database/repositories/streakRepository';
+import HapticService from '../../utils/HapticService';
 
 export default function WeeklyStreakDetail({ onBack, navigation }) {
     const insets = useSafeAreaInsets();
@@ -51,6 +52,7 @@ export default function WeeklyStreakDetail({ onBack, navigation }) {
     );
 
     const handleBackPress = () => {
+        HapticService.selection();
         if (onBack) {
             onBack();
         } else if (navigation && navigation.canGoBack()) {
@@ -59,6 +61,7 @@ export default function WeeklyStreakDetail({ onBack, navigation }) {
     };
 
     const handlePlayNow = () => {
+        HapticService.selection();
         if (navigation) {
             navigation.navigate('BottomNavigation', { screen: 'Games' });
         }

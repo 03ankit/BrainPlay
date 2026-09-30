@@ -19,6 +19,9 @@ import progressRepository from '../../database/repositories/progressRepository';
 import playerRepository from '../../database/repositories/playerRepository';
 import StarRequirementModal from '../../components/game/StarRequirementModal';
 import LevelLockedModal from '../../components/game/LevelLockedModal';
+import PurchaseSuccessModal from '../../components/game/PurchaseSuccessModal';
+import InsufficientCoinsModal from '../../components/game/InsufficientCoinsModal';
+import HapticService from '../../utils/HapticService';
 
 const { width } = Dimensions.get('window');
 
@@ -37,15 +40,15 @@ const mapNodesConfig = [
     { level: 12, xRatio: 0.50, world: 2, title: 'Prefixes & Roots' },
     { level: 11, xRatio: 0.80, world: 2, title: 'Action Words' },
     { level: 10, xRatio: 0.22, world: 2, title: 'Flower Field' },
-    { level: 9,  xRatio: 0.58, world: 2, title: 'Wonder Land' },
-    { level: 8,  xRatio: 0.24, world: 2, title: 'Player Realm' },
-    { level: 7,  xRatio: 0.80, world: 2, title: 'Puzzle Garden' },
-    { level: 6,  xRatio: 0.50, world: 2, title: 'Smart Grove' },
-    { level: 5,  xRatio: 0.22, world: 1, title: 'Brain Storm' },
-    { level: 4,  xRatio: 0.78, world: 1, title: 'House Hill' },
-    { level: 3,  xRatio: 0.44, world: 1, title: 'Star Valley' },
-    { level: 2,  xRatio: 0.78, world: 1, title: 'Game Park' },
-    { level: 1,  xRatio: 0.50, world: 1, title: 'Starting Point', sideAnnotation: { type: 'start', text: 'STARTING POINT' } },
+    { level: 9, xRatio: 0.58, world: 2, title: 'Wonder Land' },
+    { level: 8, xRatio: 0.24, world: 2, title: 'Player Realm' },
+    { level: 7, xRatio: 0.80, world: 2, title: 'Puzzle Garden' },
+    { level: 6, xRatio: 0.50, world: 2, title: 'Smart Grove' },
+    { level: 5, xRatio: 0.22, world: 1, title: 'Brain Storm' },
+    { level: 4, xRatio: 0.78, world: 1, title: 'House Hill' },
+    { level: 3, xRatio: 0.44, world: 1, title: 'Star Valley' },
+    { level: 2, xRatio: 0.78, world: 1, title: 'Game Park' },
+    { level: 1, xRatio: 0.50, world: 1, title: 'Starting Point', sideAnnotation: { type: 'start', text: 'STARTING POINT' } },
 ];
 
 export default function SelectLevel({ navigation, route }) {
@@ -62,6 +65,18 @@ export default function SelectLevel({ navigation, route }) {
     const [playerCoins, setPlayerCoins] = useState(100);
     const [selectedLevel, setSelectedLevel] = useState(Number(route?.params?.level) || 1);
     const [showStarModal, setShowStarModal] = useState(false);
+    const [purchaseSuccessModal, setPurchaseSuccessModal] = useState({
+        visible: false,
+        level: 6,
+        cost: 300,
+        remainingCoins: 0,
+    });
+    const [insufficientCoinsModal, setInsufficientCoinsModal] = useState({
+        visible: false,
+        level: 6,
+        requiredCoins: 300,
+        currentCoins: 0,
+    });
     const [lockedModal, setLockedModal] = useState({
         visible: false,
         targetLevel: 2,
@@ -159,34 +174,36 @@ export default function SelectLevel({ navigation, route }) {
         }
     });
 
-    const isWorld1Bypassed = world1Stars >= 11 || unlockedLevels.includes(6);
-
-    let activeLevelNumber = Math.min(highestCompletedLevel + 1, 20);
-    if (highestCompletedLevel >= 5 && !isWorld1Bypassed && activeLevelNumber > 5) {
-        activeLevelNumber = 5;
-    }
+    const isWorld1Qualified = world1Stars >= 11;
+    const isLevel6UnlockedWithCoins = unlockedLevels.includes(6);
 
     // Map node items with exact dynamic status & star rating from SQLite
     const mapNodesData = mapNodesConfig.map((item) => {
         const prog = playerProgress.find((p) => Number(p.level_number) === item.level);
+        const isCompleted = prog && Number(prog.is_completed) === 1;
         const isCoinUnlocked = unlockedLevels.includes(item.level);
+        const isPreviousLevelCompleted = item.level === 1 || completedSet.has(item.level - 1);
+
         let status = 'locked';
         let stars = 0;
 
-        if (prog && Number(prog.is_completed) === 1) {
+        if (isCompleted) {
             status = 'completed';
             stars = prog.stars !== undefined && prog.stars !== null ? Number(prog.stars) : 0;
         } else if (isCoinUnlocked) {
             status = 'active';
             stars = 0;
-        } else if (item.level === activeLevelNumber) {
+        } else if (item.level === 1) {
             status = 'active';
             stars = 0;
-        }
-
-        // Lock level 6 and beyond if World 1 stars requirement (11 stars) is not met and not coin unlocked
-        if (item.level >= 6 && !isWorld1Bypassed && !isCoinUnlocked && status !== 'completed') {
-            status = 'locked';
+        } else if (isPreviousLevelCompleted) {
+            // Level 6 requires 11 stars in World 1 or coin unlock to progress from Level 5
+            if (item.level === 6 && !isWorld1Qualified && !isLevel6UnlockedWithCoins) {
+                status = 'locked';
+            } else {
+                status = 'active';
+            }
+            stars = 0;
         }
 
         return {
@@ -196,20 +213,42 @@ export default function SelectLevel({ navigation, route }) {
         };
     });
 
+    // Compute the active level number (the selected level or current active level)
+    const activeNodes = mapNodesData.filter((n) => n.status === 'active');
+    const highestActiveLevel = activeNodes.length > 0
+        ? Math.max(...activeNodes.map((n) => n.level))
+        : Math.min(highestCompletedLevel + 1, 20);
+    const activeLevelNumber = selectedLevel || highestActiveLevel || 1;
+
     const selectedNodeInfo = mapNodesData.find((n) => n.level === selectedLevel) || {
         level: selectedLevel,
         title: `Level ${selectedLevel} Challenge`,
     };
 
     const handleBack = () => {
+        HapticService.selection();
         navigation.reset({
             index: 0,
             routes: [{ name: 'BottomNavigation', params: { screen: 'Games' } }],
         });
     };
 
+    const isLevel5Completed = completedSet.has(5);
+
     // Unlock any locked level with 300 coins
     const handleUnlockWithCoins = async (targetLvl) => {
+        HapticService.selection();
+
+        // Level 6 cannot be unlocked with coins unless Level 5 is completed first
+        if (targetLvl === 6 && !completedSet.has(5)) {
+            HapticService.error();
+            Alert.alert(
+                'Complete Level 5 First',
+                'You must complete all 5 levels in World 1 first before unlocking Level 6.'
+            );
+            return;
+        }
+
         const result = await progressRepository.unlockLevelWithCoins({
             profileId: 'local_player',
             gameId,
@@ -218,21 +257,27 @@ export default function SelectLevel({ navigation, route }) {
         });
 
         if (result.success) {
+            HapticService.success();
             setShowStarModal(false);
             setLockedModal((prev) => ({ ...prev, visible: false }));
             setPlayerCoins(result.remainingCoins);
             setUnlockedLevels((prev) => [...prev, targetLvl]);
             setSelectedLevel(targetLvl);
             await loadProgress();
-            Alert.alert(
-                'Level Unlocked! 🎉',
-                `Level ${targetLvl} is now unlocked! You spent 300 coins. New Balance: ${result.remainingCoins} 🪙`,
-            );
+            setPurchaseSuccessModal({
+                visible: true,
+                level: targetLvl,
+                cost: 300,
+                remainingCoins: result.remainingCoins,
+            });
         } else {
-            Alert.alert(
-                'Insufficient Coins',
-                result.message || `You need 300 coins to unlock Level ${targetLvl}. Complete levels to earn more coins!`
-            );
+            HapticService.error();
+            setInsufficientCoinsModal({
+                visible: true,
+                level: targetLvl,
+                requiredCoins: 300,
+                currentCoins: playerCoins,
+            });
         }
     };
 
@@ -240,46 +285,79 @@ export default function SelectLevel({ navigation, route }) {
     const handleNodePress = (level) => {
         const node = mapNodesData.find((n) => n.level === level);
 
-        // Check if user tapped Level 6+ without meeting 11 stars in World 1 and without coin unlock
-        if (level >= 6 && !isWorld1Bypassed && !unlockedLevels.includes(level) && node?.status === 'locked') {
-            setShowStarModal(true);
+        if (node && node.status !== 'locked') {
+            HapticService.light();
+            setSelectedLevel(level);
             return;
         }
 
-        if (node && node.status !== 'locked') {
-            setSelectedLevel(level);
-        } else {
-            const reqLevel = Math.max(1, level - 1);
-            setLockedModal({
-                visible: true,
-                targetLevel: level,
-                requiredLevel: reqLevel,
-                title: level === 20 ? 'Summit Locked' : 'Level Locked',
-                message: level === 20
-                    ? 'Complete previous levels to unlock the Royal Boss Summit!'
-                    : `Complete Level ${reqLevel} first to unlock Level ${level}!`,
-            });
+        HapticService.warning();
+
+        // Level 6 handling: Must complete Level 5 first
+        if (level === 6) {
+            if (!completedSet.has(5)) {
+                setLockedModal({
+                    visible: true,
+                    targetLevel: 6,
+                    requiredLevel: 5,
+                    title: 'World 2 Locked',
+                    message: 'Complete all 5 levels in World 1 first to unlock Level 6!',
+                    allowCoinUnlock: false,
+                });
+                return;
+            }
+
+            // Level 5 completed, but insufficient stars (< 11 stars) and not coin unlocked
+            if (!isWorld1Qualified && !isLevel6UnlockedWithCoins) {
+                setShowStarModal(true);
+                return;
+            }
         }
+
+        const reqLevel = Math.max(1, level - 1);
+        setLockedModal({
+            visible: true,
+            targetLevel: level,
+            requiredLevel: reqLevel,
+            title: level === 21 || level === 20 ? 'Summit Locked' : 'Level Locked',
+            message: `Complete Level ${reqLevel} first to unlock Level ${level}!`,
+            allowCoinUnlock: false,
+        });
     };
 
     // Play selected level button
     const handlePlaySelectedLevel = () => {
-        if (selectedLevel >= 6 && !isWorld1Bypassed && !unlockedLevels.includes(selectedLevel)) {
-            setShowStarModal(true);
-            return;
-        }
-
+        HapticService.selection();
         const targetNode = mapNodesData.find((n) => n.level === selectedLevel);
+
         if (targetNode && targetNode.status === 'locked') {
+            if (selectedLevel === 6) {
+                if (!completedSet.has(5)) {
+                    setLockedModal({
+                        visible: true,
+                        targetLevel: 6,
+                        requiredLevel: 5,
+                        title: 'World 2 Locked',
+                        message: 'Complete all 5 levels in World 1 first to unlock Level 6!',
+                        allowCoinUnlock: false,
+                    });
+                    return;
+                }
+
+                if (!isWorld1Qualified && !isLevel6UnlockedWithCoins) {
+                    setShowStarModal(true);
+                    return;
+                }
+            }
+
             const reqLevel = Math.max(1, selectedLevel - 1);
             setLockedModal({
                 visible: true,
                 targetLevel: selectedLevel,
                 requiredLevel: reqLevel,
-                title: selectedLevel === 20 ? 'Summit Locked' : 'Level Locked',
-                message: selectedLevel === 20
-                    ? 'Complete previous levels to unlock the Royal Boss Summit!'
-                    : `Complete Level ${reqLevel} first to unlock Level ${selectedLevel}!`,
+                title: selectedLevel === 21 || selectedLevel === 20 ? 'Summit Locked' : 'Level Locked',
+                message: `Complete Level ${reqLevel} first to unlock Level ${selectedLevel}!`,
+                allowCoinUnlock: false,
             });
             return;
         }
@@ -295,26 +373,28 @@ export default function SelectLevel({ navigation, route }) {
         }
     };
 
+    const isBossUnlocked = completedSet.has(20) || unlockedLevels.includes(21);
+
     const handlePlayBoss = () => {
-        const bossNode = mapNodesData.find((n) => n.level === 20);
-        if (bossNode && bossNode.status !== 'locked') {
-            setSelectedLevel(20);
+        HapticService.selection();
+        if (isBossUnlocked) {
+            setSelectedLevel(21);
             if (gameTitle === 'Color Match') {
-                navigation.navigate('ColorMatchScreen', { level: 20, game: gameTitle });
+                navigation.navigate('ColorMatchScreen', { level: 21, game: gameTitle });
             } else if (gameTitle === 'Math Quiz' || gameTitle === 'Maths Challenge') {
-                navigation.navigate('MathQuizScreen', { level: 20, game: gameTitle });
+                navigation.navigate('MathQuizScreen', { level: 21, game: gameTitle });
             } else if (gameTitle === 'Memory Cards' || gameTitle === 'Memory Challenge' || gameTitle === 'Memory') {
-                navigation.navigate('MemoryChallengeScreen', { level: 20, game: gameTitle });
+                navigation.navigate('MemoryChallengeScreen', { level: 21, game: gameTitle });
             } else {
-                navigation.navigate('WordPuzzleScreen', { level: 20, game: gameTitle });
+                navigation.navigate('WordPuzzleScreen', { level: 21, game: gameTitle });
             }
         } else {
             setLockedModal({
                 visible: true,
-                targetLevel: 20,
-                requiredLevel: 19,
-                title: 'Summit Locked',
-                message: 'Complete previous levels to unlock the Royal Boss Summit!',
+                targetLevel: 21,
+                requiredLevel: 20,
+                title: 'Boss Summit Locked',
+                message: 'Complete Level 20 to unlock the Ultimate Royal Boss Summit!',
             });
         }
     };
@@ -473,7 +553,7 @@ export default function SelectLevel({ navigation, route }) {
                 </View>
 
                 {/* Boss Summit at Top */}
-                <BossSummitCard onPlayBoss={handlePlayBoss} />
+                <BossSummitCard onPlayBoss={handlePlayBoss} isUnlocked={isBossUnlocked} />
 
                 {/* Map Nodes */}
                 <View style={styles.pathNodesContainer}>
@@ -553,14 +633,48 @@ export default function SelectLevel({ navigation, route }) {
                 onClose={() => setShowStarModal(false)}
             />
 
-            {/* Level Locked Custom Modal */}
+            {/* Level Locked Custom Modal with Conditional Coin Unlock */}
             <LevelLockedModal
                 visible={lockedModal.visible}
                 targetLevel={lockedModal.targetLevel}
                 requiredLevel={lockedModal.requiredLevel}
+                unlockCoinsCost={300}
+                playerCoins={playerCoins}
                 title={lockedModal.title}
                 message={lockedModal.message}
+                onUnlockWithCoins={lockedModal.allowCoinUnlock ? () => handleUnlockWithCoins(lockedModal.targetLevel) : null}
                 onClose={() => setLockedModal((prev) => ({ ...prev, visible: false }))}
+            />
+
+            {/* Purchase Success Modal */}
+            <PurchaseSuccessModal
+                visible={purchaseSuccessModal.visible}
+                level={purchaseSuccessModal.level}
+                cost={purchaseSuccessModal.cost}
+                remainingCoins={purchaseSuccessModal.remainingCoins}
+                onPlayLevel={() => {
+                    const lvl = purchaseSuccessModal.level;
+                    setPurchaseSuccessModal((prev) => ({ ...prev, visible: false }));
+                    navigation.navigate('Detail', {
+                        title: gameTitle,
+                        level: lvl,
+                        game: gameParam || { title: gameTitle },
+                    });
+                }}
+                onClose={() => setPurchaseSuccessModal((prev) => ({ ...prev, visible: false }))}
+            />
+
+            {/* Insufficient Coins Modal */}
+            <InsufficientCoinsModal
+                visible={insufficientCoinsModal.visible}
+                level={insufficientCoinsModal.level}
+                requiredCoins={insufficientCoinsModal.requiredCoins}
+                currentCoins={insufficientCoinsModal.currentCoins}
+                onReplay={() => {
+                    setInsufficientCoinsModal((prev) => ({ ...prev, visible: false }));
+                    setShowStarModal(false);
+                }}
+                onClose={() => setInsufficientCoinsModal((prev) => ({ ...prev, visible: false }))}
             />
         </View>
     );

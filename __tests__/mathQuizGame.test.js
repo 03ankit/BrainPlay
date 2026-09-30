@@ -1,8 +1,8 @@
 import { MATH_QUIZ_LEVELS, getLevelChallenge } from '../src/data/mathQuizData';
 
 describe('Math Quiz Game Data & Logic (1 Level = 1 Question)', () => {
-    test('MATH_QUIZ_LEVELS has 20 configured levels with valid 4 options and correct answers', () => {
-        expect(MATH_QUIZ_LEVELS.length).toBe(20);
+    test('MATH_QUIZ_LEVELS has 21 configured levels with valid 4 options and correct answers', () => {
+        expect(MATH_QUIZ_LEVELS.length).toBe(21);
 
         MATH_QUIZ_LEVELS.forEach((challenge, index) => {
             expect(challenge.level).toBe(index + 1);
@@ -14,7 +14,7 @@ describe('Math Quiz Game Data & Logic (1 Level = 1 Question)', () => {
     });
 
     test('getLevelChallenge returns correct challenge for any level number', () => {
-        for (let lvl = 1; lvl <= 20; lvl++) {
+        for (let lvl = 1; lvl <= 21; lvl++) {
             const ch = getLevelChallenge(lvl);
             expect(ch.level).toBe(lvl);
             expect(ch.options.length).toBe(4);

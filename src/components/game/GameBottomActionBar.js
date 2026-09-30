@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import fonts from '../../constants/fonts';
+import HapticService from '../../utils/HapticService';
 
 const GameBottomActionBar = ({
     onStartGame,
@@ -11,7 +12,13 @@ const GameBottomActionBar = ({
     const insets = useSafeAreaInsets();
     const [isFavorite, setIsFavorite] = useState(isFavoriteInitial);
 
+    const handleStartPress = () => {
+        HapticService.selection();
+        onStartGame && onStartGame();
+    };
+
     const handleFavoritePress = () => {
+        HapticService.light();
         const nextState = !isFavorite;
         setIsFavorite(nextState);
         if (onToggleFavorite) {
@@ -25,7 +32,7 @@ const GameBottomActionBar = ({
             <TouchableOpacity
                 style={styles.startButton}
                 activeOpacity={0.8}
-                onPress={onStartGame}
+                onPress={handleStartPress}
             >
                 <Text style={styles.playIcon}>▶</Text>
                 <Text style={styles.startButtonText}>Start Game</Text>

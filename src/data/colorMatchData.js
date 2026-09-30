@@ -215,6 +215,18 @@ export const COLOR_MATCH_LEVELS = [
         difficulty: 'EXPERT',
         points: 2000,
     },
+    {
+        level: 21,
+        word: 'PURPLE',
+        inkColorName: 'TEAL',
+        inkColorHex: '#0D9488',
+        isMatch: false,
+        timeLimitSeconds: 4,
+        difficulty: 'BOSS',
+        points: 5000,
+        isBoss: true,
+        title: 'Royal Boss Summit',
+    },
 ];
 
 /**
