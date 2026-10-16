@@ -261,46 +261,46 @@ export const getWeeklyStreak = async (profileId = 'local_player') => {
 
 export const STREAK_DIVISIONS = [
     // Bronze Tier
-    { id: 'bronze_3', tierId: 'bronze', name: 'Bronze', division: 'III', divisionNum: 3, badgeKey: 'bronze', minDays: 0, maxDays: 6, color: '#CD7F32', title: 'Bronze III', description: 'Start your journey towards Bronze II!' },
-    { id: 'bronze_2', tierId: 'bronze', name: 'Bronze', division: 'II', divisionNum: 2, badgeKey: 'bronze', minDays: 7, maxDays: 13, color: '#CD7F32', title: 'Bronze II', description: 'Promoted to Bronze II! Next up: Bronze I' },
-    { id: 'bronze_1', tierId: 'bronze', name: 'Bronze', division: 'I', divisionNum: 1, badgeKey: 'bronze', minDays: 14, maxDays: 20, color: '#CD7F32', title: 'Bronze I', description: 'Top Bronze division! Push for Silver III' },
+    { id: 'bronze_1', tierId: 'bronze', name: 'Bronze', division: 'I', divisionNum: 1, badgeKey: 'bronze', minDays: 0, maxDays: 6, color: '#CD7F32', title: 'Bronze I', description: 'Start your journey towards Bronze II!' },
+    { id: 'bronze_2', tierId: 'bronze', name: 'Bronze', division: 'II', divisionNum: 2, badgeKey: 'bronze', minDays: 7, maxDays: 13, color: '#CD7F32', title: 'Bronze II', description: 'Promoted to Bronze II! Next up: Bronze III' },
+    { id: 'bronze_3', tierId: 'bronze', name: 'Bronze', division: 'III', divisionNum: 3, badgeKey: 'bronze', minDays: 14, maxDays: 20, color: '#CD7F32', title: 'Bronze III', description: 'Top Bronze division! Push for Silver I' },
 
     // Silver Tier
-    { id: 'silver_3', tierId: 'silver', name: 'Silver', division: 'III', divisionNum: 3, badgeKey: 'silver', minDays: 21, maxDays: 27, color: '#94A3B8', title: 'Silver III', description: 'Welcome to Silver League! Aim for Silver II' },
-    { id: 'silver_2', tierId: 'silver', name: 'Silver', division: 'II', divisionNum: 2, badgeKey: 'silver', minDays: 28, maxDays: 34, color: '#94A3B8', title: 'Silver II', description: 'Silver II unlocked! One step closer to Silver I' },
-    { id: 'silver_1', tierId: 'silver', name: 'Silver', division: 'I', divisionNum: 1, badgeKey: 'silver', minDays: 35, maxDays: 41, color: '#94A3B8', title: 'Silver I', description: 'Silver peak division! Next tier: Gold III' },
+    { id: 'silver_1', tierId: 'silver', name: 'Silver', division: 'I', divisionNum: 1, badgeKey: 'silver', minDays: 21, maxDays: 27, color: '#94A3B8', title: 'Silver I', description: 'Welcome to Silver League! Aim for Silver II' },
+    { id: 'silver_2', tierId: 'silver', name: 'Silver', division: 'II', divisionNum: 2, badgeKey: 'silver', minDays: 28, maxDays: 34, color: '#94A3B8', title: 'Silver II', description: 'Silver II unlocked! One step closer to Silver III' },
+    { id: 'silver_3', tierId: 'silver', name: 'Silver', division: 'III', divisionNum: 3, badgeKey: 'silver', minDays: 35, maxDays: 41, color: '#94A3B8', title: 'Silver III', description: 'Silver peak division! Next tier: Gold I' },
 
     // Gold Tier
-    { id: 'gold_3', tierId: 'gold', name: 'Gold', division: 'III', divisionNum: 3, badgeKey: 'gold', minDays: 42, maxDays: 48, color: '#EAB308', title: 'Gold III', description: 'Gold League achieved! Push for Gold II' },
+    { id: 'gold_1', tierId: 'gold', name: 'Gold', division: 'I', divisionNum: 1, badgeKey: 'gold', minDays: 42, maxDays: 48, color: '#EAB308', title: 'Gold I', description: 'Gold League achieved! Push for Gold II' },
     { id: 'gold_2', tierId: 'gold', name: 'Gold', division: 'II', divisionNum: 2, badgeKey: 'gold', minDays: 49, maxDays: 55, color: '#EAB308', title: 'Gold II', description: 'Gold II reached! Outstanding consistency' },
-    { id: 'gold_1', tierId: 'gold', name: 'Gold', division: 'I', divisionNum: 1, badgeKey: 'gold', minDays: 56, maxDays: 62, color: '#EAB308', title: 'Gold I', description: 'Master of Gold! Ready for Diamond III' },
+    { id: 'gold_3', tierId: 'gold', name: 'Gold', division: 'III', divisionNum: 3, badgeKey: 'gold', minDays: 56, maxDays: 62, color: '#EAB308', title: 'Gold III', description: 'Master of Gold! Ready for Diamond I' },
 
     // Diamond Tier
-    { id: 'diamond_3', tierId: 'diamond', name: 'Diamond', division: 'III', divisionNum: 3, badgeKey: 'diamond', minDays: 63, maxDays: 69, color: '#06B6D4', title: 'Diamond III', description: 'Diamond Tier unlocked! Brilliant logic power' },
-    { id: 'diamond_2', tierId: 'diamond', name: 'Diamond', division: 'II', divisionNum: 2, badgeKey: 'diamond', minDays: 70, maxDays: 76, color: '#06B6D4', title: 'Diamond II', description: 'Diamond II achieved! Moving toward Diamond I' },
-    { id: 'diamond_1', tierId: 'diamond', name: 'Diamond', division: 'I', divisionNum: 1, badgeKey: 'diamond', minDays: 77, maxDays: 83, color: '#06B6D4', title: 'Diamond I', description: 'Peak Diamond status! Crown Tier ahead' },
+    { id: 'diamond_1', tierId: 'diamond', name: 'Diamond', division: 'I', divisionNum: 1, badgeKey: 'diamond', minDays: 63, maxDays: 69, color: '#06B6D4', title: 'Diamond I', description: 'Diamond Tier unlocked! Brilliant logic power' },
+    { id: 'diamond_2', tierId: 'diamond', name: 'Diamond', division: 'II', divisionNum: 2, badgeKey: 'diamond', minDays: 70, maxDays: 76, color: '#06B6D4', title: 'Diamond II', description: 'Diamond II achieved! Moving toward Diamond III' },
+    { id: 'diamond_3', tierId: 'diamond', name: 'Diamond', division: 'III', divisionNum: 3, badgeKey: 'diamond', minDays: 77, maxDays: 83, color: '#06B6D4', title: 'Diamond III', description: 'Peak Diamond status! Crown Tier ahead' },
 
     // Crown Tier
-    { id: 'crown_3', tierId: 'crown', name: 'Crown', division: 'III', divisionNum: 3, badgeKey: 'crown', minDays: 84, maxDays: 90, color: '#8B5CF6', title: 'Crown III', description: 'Crown royalty achieved! Master of logic' },
+    { id: 'crown_1', tierId: 'crown', name: 'Crown', division: 'I', divisionNum: 1, badgeKey: 'crown', minDays: 84, maxDays: 90, color: '#8B5CF6', title: 'Crown I', description: 'Crown royalty achieved! Master of logic' },
     { id: 'crown_2', tierId: 'crown', name: 'Crown', division: 'II', divisionNum: 2, badgeKey: 'crown', minDays: 91, maxDays: 97, color: '#8B5CF6', title: 'Crown II', description: 'Crown II rank reached! Pure dedication' },
-    { id: 'crown_1', tierId: 'crown', name: 'Crown', division: 'I', divisionNum: 1, badgeKey: 'crown', minDays: 98, maxDays: 104, color: '#8B5CF6', title: 'Crown I', description: 'Highest Crown level! Push for Immortal' },
+    { id: 'crown_3', tierId: 'crown', name: 'Crown', division: 'III', divisionNum: 3, badgeKey: 'crown', minDays: 98, maxDays: 104, color: '#8B5CF6', title: 'Crown III', description: 'Highest Crown level! Push for Immortal' },
 
     // Immortal Tier
-    { id: 'immortal_3', tierId: 'immortal', name: 'Immortal', division: 'III', divisionNum: 3, badgeKey: 'immortal', minDays: 105, maxDays: 111, color: '#EC4899', title: 'Immortal III', description: 'Immortal Tier! Legendary brain capacity' },
+    { id: 'immortal_1', tierId: 'immortal', name: 'Immortal', division: 'I', divisionNum: 1, badgeKey: 'immortal', minDays: 105, maxDays: 111, color: '#EC4899', title: 'Immortal I', description: 'Immortal Tier! Legendary brain capacity' },
     { id: 'immortal_2', tierId: 'immortal', name: 'Immortal', division: 'II', divisionNum: 2, badgeKey: 'immortal', minDays: 112, maxDays: 118, color: '#EC4899', title: 'Immortal II', description: 'Immortal II achieved! Approaching peak rank' },
-    { id: 'immortal_1', tierId: 'immortal', name: 'Immortal', division: 'I', divisionNum: 1, badgeKey: 'immortal', minDays: 119, maxDays: 125, color: '#EC4899', title: 'Immortal I', description: 'Final step to Grand Legend status!' },
+    { id: 'immortal_3', tierId: 'immortal', name: 'Immortal', division: 'III', divisionNum: 3, badgeKey: 'immortal', minDays: 119, maxDays: 125, color: '#EC4899', title: 'Immortal III', description: 'Final step to Grand Legend status!' },
 
     // Legend Tier
     { id: 'legend', tierId: 'legend', name: 'Legend', division: 'Apex', divisionNum: 1, badgeKey: 'legend', minDays: 126, maxDays: Infinity, color: '#F59E0B', title: 'Grand Legend', description: 'Ultimate Hall of Fame! Peak Champion.' },
 ];
 
 export const STREAK_TIERS = [
-    { id: 'bronze', name: 'Bronze', badgeKey: 'bronze', minDays: 0, color: '#CD7F32', title: 'Bronze League', divisions: ['III', 'II', 'I'] },
-    { id: 'silver', name: 'Silver', badgeKey: 'silver', minDays: 21, color: '#94A3B8', title: 'Silver League', divisions: ['III', 'II', 'I'] },
-    { id: 'gold', name: 'Gold', badgeKey: 'gold', minDays: 42, color: '#EAB308', title: 'Gold League', divisions: ['III', 'II', 'I'] },
-    { id: 'diamond', name: 'Diamond', badgeKey: 'diamond', minDays: 63, color: '#06B6D4', title: 'Diamond League', divisions: ['III', 'II', 'I'] },
-    { id: 'crown', name: 'Crown', badgeKey: 'crown', minDays: 84, color: '#8B5CF6', title: 'Crown Master', divisions: ['III', 'II', 'I'] },
-    { id: 'immortal', name: 'Immortal', badgeKey: 'immortal', minDays: 105, color: '#EC4899', title: 'Immortal Tier', divisions: ['III', 'II', 'I'] },
+    { id: 'bronze', name: 'Bronze', badgeKey: 'bronze', minDays: 0, color: '#CD7F32', title: 'Bronze League', divisions: ['I', 'II', 'III'] },
+    { id: 'silver', name: 'Silver', badgeKey: 'silver', minDays: 21, color: '#94A3B8', title: 'Silver League', divisions: ['I', 'II', 'III'] },
+    { id: 'gold', name: 'Gold', badgeKey: 'gold', minDays: 42, color: '#EAB308', title: 'Gold League', divisions: ['I', 'II', 'III'] },
+    { id: 'diamond', name: 'Diamond', badgeKey: 'diamond', minDays: 63, color: '#06B6D4', title: 'Diamond League', divisions: ['I', 'II', 'III'] },
+    { id: 'crown', name: 'Crown', badgeKey: 'crown', minDays: 84, color: '#8B5CF6', title: 'Crown Master', divisions: ['I', 'II', 'III'] },
+    { id: 'immortal', name: 'Immortal', badgeKey: 'immortal', minDays: 105, color: '#EC4899', title: 'Immortal Tier', divisions: ['I', 'II', 'III'] },
     { id: 'legend', name: 'Legend', badgeKey: 'legend', minDays: 126, color: '#F59E0B', title: 'Grand Legend', divisions: ['Apex'] },
 ];
 

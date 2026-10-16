@@ -19,6 +19,7 @@ export default function WeeklyStreakCard({
     days = defaultDays,
     completedDays = 4,
     totalDays = 7,
+    tier,
     onPress,
 }) {
     const progressPercentage = Math.min(Math.max((completedDays / totalDays) * 100, 0), 100);
@@ -30,6 +31,13 @@ export default function WeeklyStreakCard({
                 <View style={styles.titleContainer}>
                     <Image source={images.fire} style={styles.fireIcon} resizeMode="contain" />
                     <Text style={styles.title}>{title}</Text>
+                    {tier && (
+                        <View style={[styles.tierTag, { backgroundColor: (tier.color || '#CD7F32') + '22' }]}>
+                            <Text style={[styles.tierTagText, { color: tier.color || '#CD7F32' }]}>
+                                {tier.title || `${tier.name} ${tier.division}`}
+                            </Text>
+                        </View>
+                    )}
                 </View>
                 <Text style={styles.streakCount}>{completedDays}/{totalDays} Days</Text>
             </View>
@@ -99,6 +107,17 @@ const styles = StyleSheet.create({
     fireIcon: {
         width: 20,
         height: 20,
+    },
+    tierTag: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 8,
+        marginLeft: 6,
+    },
+    tierTagText: {
+        fontSize: 11,
+        fontFamily: fonts.bold || 'Poppins-Bold',
+        fontWeight: 'bold',
     },
     title: {
         fontSize: 20,

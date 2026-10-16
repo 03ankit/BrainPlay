@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import colors from '../constants/colour';
 import fonts from '../constants/fonts';
 import images from '../constants/images';
@@ -13,18 +13,29 @@ export default function UserProfileCard({
     maxXp = 3000,
     avatarSource = images.person,
     tier,
+    onEditPhoto,
 }) {
     const xpPercentage = Math.min(Math.max((currentXp / maxXp) * 100, 0), 100);
 
     return (
         <View style={styles.card}>
-            {/* Avatar with Level Badge */}
+            {/* Avatar with Rank Badge & Edit Button */}
             <View style={styles.avatarWrapper}>
-                <View style={styles.avatarBorder}>
+                <TouchableOpacity
+                    style={[styles.avatarBorder, { borderColor: tier?.color || '#CD7F32' }]}
+                    activeOpacity={onEditPhoto ? 0.85 : 1}
+                    onPress={onEditPhoto}
+                    disabled={!onEditPhoto}
+                >
                     <Image source={avatarSource} style={styles.avatarImage} />
-                </View>
-                <View style={styles.levelBadge}>
-                    <Text style={styles.levelBadgeText}>Lv. {level}</Text>
+                    {onEditPhoto && (
+                        <View style={[styles.editButtonContainer, { backgroundColor: tier?.color || '#CD7F32' }]}>
+                            <Image source={images.edit} style={styles.editIcon} />
+                        </View>
+                    )}
+                </TouchableOpacity>
+                <View style={[styles.levelBadge, { backgroundColor: tier?.color || '#CD7F32' }]}>
+                    <Text style={styles.levelBadgeText}>{tier?.title || 'Bronze I'}</Text>
                 </View>
             </View>
 
@@ -36,7 +47,7 @@ export default function UserProfileCard({
                 {tier && (
                     <View style={styles.tierPill}>
                         <Image source={images[tier.badgeKey]} style={styles.tierPillIcon} resizeMode="contain" />
-                        <Text style={[styles.tierPillText, { color: tier.color }]}>{tier.name} Rank</Text>
+                        <Text style={[styles.tierPillText, { color: tier.color }]}>{tier.title || `${tier.name} ${tier.division}`}</Text>
                     </View>
                 )}
                 <View style={styles.coinsPill}>
@@ -87,7 +98,7 @@ const styles = StyleSheet.create({
         height: 110,
         borderRadius: 55,
         borderWidth: 4,
-        borderColor: colors.purplePlay || '#6A4BFF',
+        borderColor: '#CD7F32',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 4,
@@ -100,19 +111,49 @@ const styles = StyleSheet.create({
     },
     levelBadge: {
         position: 'absolute',
-        bottom: -6,
+        bottom: -8,
         backgroundColor: '#4F46E5',
         paddingHorizontal: 12,
         paddingVertical: 3,
         borderRadius: 12,
         borderWidth: 2,
         borderColor: colors.white,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+        elevation: 3,
     },
     levelBadgeText: {
         color: colors.white,
         fontSize: 12,
         fontFamily: fonts.bold || 'Poppins-Bold',
         fontWeight: 'bold',
+        letterSpacing: 0.3,
+    },
+    editButtonContainer: {
+        position: 'absolute',
+        top: 2,
+        right: 2,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: colors.primary || '#6A4BFF',
+        borderWidth: 2.5,
+        borderColor: colors.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 3,
+    },
+    editIcon: {
+        height: 13,
+        width: 13,
+        resizeMode: 'contain',
+        tintColor: colors.white,
     },
     userName: {
         fontSize: 26,

@@ -19,6 +19,7 @@ import GameTimer from '../../components/game/GameTimer';
 import ExitGameModal from '../../components/game/ExitGameModal';
 import TimeUpModal from '../../components/game/TimeUpModal';
 import IncorrectModal from '../../components/game/IncorrectModal';
+import HintModal from '../../components/game/HintModal';
 import progressRepository from '../../database/repositories/progressRepository';
 import playerRepository from '../../database/repositories/playerRepository';
 import streakRepository from '../../database/repositories/streakRepository';
@@ -61,7 +62,7 @@ export default function MemoryChallengeScreen({ navigation, route }) {
     const totalPairs = challenge.pairs || 8;
     const initialSeconds = challenge.timeLimit || 60;
     const previewTimeMs = challenge.previewTime || 4000;
-    const maxLives = challenge.lives || 3;
+    const maxLives = 3;
 
     // Game state
     const [deck, setDeck] = useState(() => generateDeck(challenge.cards, totalPairs));
@@ -72,6 +73,13 @@ export default function MemoryChallengeScreen({ navigation, route }) {
     const [previewCountdown, setPreviewCountdown] = useState(Math.ceil(previewTimeMs / 1000));
     const [isCompleted, setIsCompleted] = useState(false);
     const [timerKey, setTimerKey] = useState(0);
+    const [playerCoins, setPlayerCoins] = useState(0);
+
+    // Show Cards / Hint state
+    const [showHintModal, setShowHintModal] = useState(false);
+    const [isRevealingCards, setIsRevealingCards] = useState(false);
+    const [revealCountdown, setRevealCountdown] = useState(3);
+    const revealIntervalRef = useRef(null);
 
     // Modals
     const [showExitModal, setShowExitModal] = useState(false);
@@ -82,15 +90,31 @@ export default function MemoryChallengeScreen({ navigation, route }) {
     const isEvaluatingRef = useRef(false);
     const previewIntervalRef = useRef(null);
 
+    // Load player coins on mount
+    useEffect(() => {
+        const loadCoins = async () => {
+            try {
+                const profile = await playerRepository.getPlayerProfile('local_player');
+                if (profile) setPlayerCoins(Number(profile.coins) || 0);
+            } catch (e) {
+                console.log('Could not load player coins:', e);
+            }
+        };
+        loadCoins();
+    }, []);
+
     // Initialize or Reset Game for Selected Level
     const initGame = useCallback(() => {
         const newChallenge = getLevelChallenge(selectedLevel);
         const newDeck = generateDeck(newChallenge.cards, newChallenge.pairs || 8);
 
+        if (revealIntervalRef.current) clearInterval(revealIntervalRef.current);
+        setIsRevealingCards(false);
+
         setDeck(newDeck);
         setFlippedIndices([]);
         setMatchedCardIds(new Set());
-        setLivesLeft(newChallenge.lives || 3);
+        setLivesLeft(3);
         setIsCompleted(false);
         setIsPreviewing(true);
         isEvaluatingRef.current = false;
@@ -118,6 +142,7 @@ export default function MemoryChallengeScreen({ navigation, route }) {
         initGame();
         return () => {
             if (previewIntervalRef.current) clearInterval(previewIntervalRef.current);
+            if (revealIntervalRef.current) clearInterval(revealIntervalRef.current);
         };
     }, [initGame]);
 
@@ -144,7 +169,7 @@ export default function MemoryChallengeScreen({ navigation, route }) {
 
     // Card Tap Handler
     const handleCardPress = (index) => {
-        if (isPreviewing || isEvaluatingRef.current || isCompleted) return;
+        if (isPreviewing || isRevealingCards || isEvaluatingRef.current || isCompleted) return;
         if (flippedIndices.includes(index)) return;
         if (matchedCardIds.has(deck[index].id)) return;
 
@@ -220,7 +245,7 @@ export default function MemoryChallengeScreen({ navigation, route }) {
         let earnedStars = 3;
         if (livesLeft <= 1 || elapsedSecs > initialSeconds * 0.75) {
             earnedStars = 1;
-        } else if (elapsedSecs > initialSeconds * 0.5 || (initialLives >= 3 && livesLeft === 2)) {
+        } else if (elapsedSecs > initialSeconds * 0.5 || livesLeft === 2) {
             earnedStars = 2;
         } else {
             earnedStars = 3;
@@ -271,6 +296,50 @@ export default function MemoryChallengeScreen({ navigation, route }) {
         initGame();
     };
 
+    // Show Cards (Hint) trigger — reveals all unmatched cards for 3 seconds
+    const triggerShowCards = () => {
+        if (isCompleted || isPreviewing) return;
+        setFlippedIndices([]);
+        isEvaluatingRef.current = false;
+        setIsRevealingCards(true);
+        setRevealCountdown(3);
+        HapticService.medium();
+
+        if (revealIntervalRef.current) clearInterval(revealIntervalRef.current);
+        let remaining = 3;
+        revealIntervalRef.current = setInterval(() => {
+            remaining -= 1;
+            setRevealCountdown(remaining);
+            if (remaining <= 0) {
+                clearInterval(revealIntervalRef.current);
+                revealIntervalRef.current = null;
+                setIsRevealingCards(false);
+            }
+        }, 1000);
+    };
+
+    // User chose "Spend 100 Coins"
+    const handleUseCoins = async () => {
+        setShowHintModal(false);
+        try {
+            const updated = await playerRepository.deductCoins('local_player', 100);
+            if (updated) setPlayerCoins(Number(updated.coins) || 0);
+        } catch (e) {
+            console.log('Could not deduct hint coins:', e);
+        }
+        setTimeout(() => {
+            triggerShowCards();
+        }, 200);
+    };
+
+    // User watched ad — reveal cards directly for free (no coins added or deducted)
+    const handleUseHintAfterAd = () => {
+        setShowHintModal(false);
+        setTimeout(() => {
+            triggerShowCards();
+        }, 200);
+    };
+
     // Exit to Level Map
     const handleExitToMap = () => {
         setShowExitModal(false);
@@ -293,9 +362,10 @@ export default function MemoryChallengeScreen({ navigation, route }) {
 
     return (
         <View style={[styles.screen, { paddingTop: insets.top }]}>
-            {/* Standard GameHeader matching ColorMatch & Word Jumble */}
+            {/* Standard GameHeader with Coin Balance */}
             <GameHeader
                 level={selectedLevel}
+                coins={playerCoins}
                 onBack={() => setShowExitModal(true)}
             />
 
@@ -304,7 +374,7 @@ export default function MemoryChallengeScreen({ navigation, route }) {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {/* Timer / Preview State */}
+                {/* Timer / Preview State / Revealing Banner */}
                 {isPreviewing ? (
                     <View style={styles.previewBanner}>
                         <Text style={styles.previewBannerIcon}>👀</Text>
@@ -315,13 +385,23 @@ export default function MemoryChallengeScreen({ navigation, route }) {
                             Cards will flip face down shortly!
                         </Text>
                     </View>
+                ) : isRevealingCards ? (
+                    <View style={[styles.previewBanner, styles.revealingBanner]}>
+                        <Text style={styles.previewBannerIcon}>👁️</Text>
+                        <Text style={[styles.previewBannerTitle, styles.revealingBannerTitle]}>
+                            SHOWING CARDS ({revealCountdown}s)
+                        </Text>
+                        <Text style={[styles.previewBannerSub, styles.revealingBannerSub]}>
+                            Memorize card pairs before they flip!
+                        </Text>
+                    </View>
                 ) : (
                     <GameTimer
                         initialSeconds={initialSeconds}
                         onTimeUp={handleTimeUp}
                         questionId={selectedLevel}
                         resetKey={timerKey}
-                        isPaused={!isFocused || isCompleted || showTimeUpModal || showIncorrectModal}
+                        isPaused={!isFocused || isCompleted || showTimeUpModal || showIncorrectModal || showHintModal || isRevealingCards}
                     />
                 )}
 
@@ -354,7 +434,7 @@ export default function MemoryChallengeScreen({ navigation, route }) {
                 <View style={[styles.gridContainer, { maxWidth: width - (GRID_PADDING * 2) }]}>
                     {deck.map((card, index) => {
                         const isMatched = matchedCardIds.has(card.id);
-                        const isFlipped = isPreviewing || flippedIndices.includes(index) || isMatched;
+                        const isFlipped = isPreviewing || isRevealingCards || flippedIndices.includes(index) || isMatched;
 
                         return (
                             <TouchableOpacity
@@ -367,7 +447,7 @@ export default function MemoryChallengeScreen({ navigation, route }) {
                                 ]}
                                 activeOpacity={0.8}
                                 onPress={() => handleCardPress(index)}
-                                disabled={isPreviewing || isFlipped || isMatched}
+                                disabled={isPreviewing || isRevealingCards || isFlipped || isMatched}
                             >
                                 {isFlipped ? (
                                     <Text style={[styles.cardEmoji, { fontSize: dynamicEmojiSize }]}>
@@ -389,8 +469,28 @@ export default function MemoryChallengeScreen({ navigation, route }) {
                 <Text style={styles.instructionText}>
                     {isPreviewing
                         ? 'Quickly memorize all card locations!'
+                        : isRevealingCards
+                        ? 'Memorizing cards...'
                         : 'Tap 2 cards to find identical matching pairs.'}
                 </Text>
+
+                {/* Show Cards Button */}
+                <TouchableOpacity
+                    style={[
+                        styles.showCardButton,
+                        (isPreviewing || isRevealingCards || isCompleted) && styles.showCardButtonDisabled,
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={() => setShowHintModal(true)}
+                    disabled={isPreviewing || isRevealingCards || isCompleted}
+                >
+                    <Text style={[styles.showCardIcon, (isPreviewing || isRevealingCards || isCompleted) && styles.showCardIconDisabled]}>
+                        💡
+                    </Text>
+                    <Text style={[styles.showCardText, (isPreviewing || isRevealingCards || isCompleted) && styles.showCardTextDisabled]}>
+                        Show Cards
+                    </Text>
+                </TouchableOpacity>
             </ScrollView>
 
             {/* Exit Confirmation Modal */}
@@ -418,6 +518,17 @@ export default function MemoryChallengeScreen({ navigation, route }) {
                 message={`Out of lives for Level ${selectedLevel}! Try again to beat the challenge.`}
                 onTryAgain={handleRetry}
                 onLevelMap={handleExitToMap}
+            />
+
+            {/* Hint / Show Cards Choice Modal — Watch Ad or Spend 100 Coins */}
+            <HintModal
+                visible={showHintModal}
+                currentCoins={playerCoins}
+                title="Show Cards?"
+                subtitle="Reveal all cards for 3 seconds to help match pairs"
+                onUseCoins={handleUseCoins}
+                onUseHintAfterAd={handleUseHintAfterAd}
+                onClose={() => setShowHintModal(false)}
             />
         </View>
     );
@@ -461,6 +572,16 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#7C3AED',
         marginTop: 2,
+    },
+    revealingBanner: {
+        backgroundColor: '#F0FDF4',
+        borderColor: '#86EFAC',
+    },
+    revealingBannerTitle: {
+        color: '#16A34A',
+    },
+    revealingBannerSub: {
+        color: '#15803D',
     },
 
     // HUD status row
@@ -571,5 +692,46 @@ const styles = StyleSheet.create({
         color: '#64748B',
         textAlign: 'center',
         marginTop: 14,
+    },
+
+    // Show Cards (Hint) Button
+    showCardButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FFFFFF',
+        borderWidth: 2,
+        borderColor: colors.primary || '#4F46E5',
+        borderRadius: 20,
+        paddingVertical: 14,
+        paddingHorizontal: 32,
+        marginTop: 18,
+        gap: 10,
+        shadowColor: colors.primary || '#4F46E5',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+        elevation: 3,
+    },
+    showCardButtonDisabled: {
+        borderColor: '#E2E8F0',
+        backgroundColor: '#F8FAFC',
+        shadowOpacity: 0,
+        elevation: 0,
+    },
+    showCardIcon: {
+        fontSize: 18,
+    },
+    showCardIconDisabled: {
+        opacity: 0.4,
+    },
+    showCardText: {
+        fontFamily: fonts.bold || 'System',
+        fontSize: 16,
+        fontWeight: '800',
+        color: colors.primary || '#4F46E5',
+    },
+    showCardTextDisabled: {
+        color: '#94A3B8',
     },
 });

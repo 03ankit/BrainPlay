@@ -28,6 +28,22 @@ export const updatePlayerStats = async (id = 'local_player', { xp, coins, trophi
     }
 };
 
+export const deductCoins = async (id = 'local_player', amount = 0) => {
+    try {
+        // Clamp so coins never go below 0
+        await executeSql(
+            `UPDATE profiles
+             SET coins = MAX(0, coins - ?), updated_at = datetime('now')
+             WHERE id = ?;`,
+            [amount, id]
+        );
+        return await getPlayerProfile(id);
+    } catch (error) {
+        console.error('Error deducting coins:', error);
+        throw error;
+    }
+};
+
 export const savePlayerProfile = async (id = 'local_player', { name, email, phone_number, image }) => {
     try {
         await executeSql(
@@ -95,4 +111,5 @@ export default {
     updatePlayerStats,
     savePlayerProfile,
     syncPlayerCoins,
+    deductCoins,
 };

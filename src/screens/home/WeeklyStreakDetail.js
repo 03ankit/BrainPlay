@@ -238,7 +238,7 @@ export default function WeeklyStreakDetail({ onBack, navigation }) {
                         <View>
                             <Text style={styles.leagueSectionTitle}>Streak Ranks</Text>
                             <Text style={styles.leagueSectionSubtitle}>
-                                Rank 3 → 2 → 1 in each tier (7 days per rank)
+                                Rank 1 → 2 → 3 in each tier (7 days per rank)
                             </Text>
                         </View>
                         <View style={[styles.currentTierPill, { backgroundColor: currentTier.color + '22' }]}>

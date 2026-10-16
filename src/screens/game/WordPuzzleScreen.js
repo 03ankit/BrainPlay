@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     View,
     StyleSheet,
@@ -19,6 +19,8 @@ import GameButtons from '../../components/game/GameButtons';
 import ExitGameModal from '../../components/game/ExitGameModal';
 import TimeUpModal from '../../components/game/TimeUpModal';
 import IncorrectModal from '../../components/game/IncorrectModal';
+import WatchAdModal from '../../components/game/WatchAdModal';
+import HintModal from '../../components/game/HintModal';
 import questionRepository from '../../database/repositories/questionRepository';
 import gameHistoryRepository from '../../database/repositories/gameHistoryRepository';
 import progressRepository from '../../database/repositories/progressRepository';
@@ -79,12 +81,32 @@ export default function WordPuzzleScreen({ navigation, route }) {
     const [isCompleted, setIsCompleted] = useState(false);
     const [questionStartTime, setQuestionStartTime] = useState(Date.now());
 
+    // Coin state
+    const [playerCoins, setPlayerCoins] = useState(0);
+    const pendingHintRef = useRef(null); // stores { requiredChar, matchingLetter } when ad is needed
+
+    // Hint modal state
+    const [showHintModal, setShowHintModal] = useState(false);
+
     // Exit, Time Up & Incorrect Modal state
     const [showExitModal, setShowExitModal] = useState(false);
     const [pendingTarget, setPendingTarget] = useState(null);
     const [showTimeUpModal, setShowTimeUpModal] = useState(false);
     const [showIncorrectModal, setShowIncorrectModal] = useState(false);
     const [timerKey, setTimerKey] = useState(0);
+
+    // Load player coins on mount
+    useEffect(() => {
+        const loadCoins = async () => {
+            try {
+                const profile = await playerRepository.getPlayerProfile('local_player');
+                if (profile) setPlayerCoins(Number(profile.coins) || 0);
+            } catch (e) {
+                console.log('Could not load player coins:', e);
+            }
+        };
+        loadCoins();
+    }, []);
 
     // 1. Fetch single question for the selected level
     useEffect(() => {
@@ -275,7 +297,20 @@ export default function WordPuzzleScreen({ navigation, route }) {
         });
     }, [navigation, playerLevel]);
 
-    // Hint button callback (allowed up to half of the word length, e.g. 3 hints for 6 letters)
+    // --- Hint cost constant ---
+    const HINT_COST = 100;
+
+    // Apply a hint directly (called after payment is confirmed)
+    const applyHint = (requiredChar, matchingLetter) => {
+        setHintsUsed((prev) => prev + 1);
+        if (matchingLetter) {
+            handleSelectLetter(matchingLetter);
+        } else {
+            Alert.alert('Hint', `The next letter is "${requiredChar}".`);
+        }
+    };
+
+    // Hint button — always opens the choice modal
     const handleHint = () => {
         if (!currentQuestion || !currentQuestion.word) return;
 
@@ -291,26 +326,52 @@ export default function WordPuzzleScreen({ navigation, route }) {
         }
 
         const nextIndex = selectedLetters.length;
-
-        if (nextIndex >= targetWord.length) {
-            return;
-        }
+        if (nextIndex >= targetWord.length) return;
 
         const requiredChar = targetWord[nextIndex];
-
-        // Track hint usage for star calculation
-        setHintsUsed((prev) => prev + 1);
-
-        // Find an unselected matching letter tile
         const matchingLetter = availableLetters.find(
             (item) => !item.isSelected && item.char.toUpperCase() === requiredChar
         );
 
-        if (matchingLetter) {
-            handleSelectLetter(matchingLetter);
-        } else {
-            Alert.alert('Hint', `The next letter is "${requiredChar}".`);
+        // Store pending hint data and open the choice modal
+        pendingHintRef.current = { requiredChar, matchingLetter };
+        setShowHintModal(true);
+    };
+
+    // User chose "Spend 100 Coins" in HintModal
+    const handleUseCoins = async () => {
+        if (!pendingHintRef.current) return;
+
+        // Capture hint data before clearing ref
+        const { requiredChar, matchingLetter } = pendingHintRef.current;
+        pendingHintRef.current = null;
+
+        // Close modal first
+        setShowHintModal(false);
+
+        // Deduct coins
+        try {
+            const updated = await playerRepository.deductCoins('local_player', HINT_COST);
+            if (updated) setPlayerCoins(Number(updated.coins) || 0);
+        } catch (e) {
+            console.log('Could not deduct hint coins:', e);
         }
+
+        // Apply hint after modal fully dismisses
+        setTimeout(() => {
+            applyHint(requiredChar, matchingLetter);
+        }, 200);
+    };
+
+    // User watched ad — apply hint directly for free (no coins added or deducted)
+    const handleUseHintAfterAd = () => {
+        if (!pendingHintRef.current) return;
+        const { requiredChar, matchingLetter } = pendingHintRef.current;
+        pendingHintRef.current = null;
+        setShowHintModal(false);
+        setTimeout(() => {
+            applyHint(requiredChar, matchingLetter);
+        }, 200);
     };
 
     // Submit answer callback
@@ -409,7 +470,7 @@ export default function WordPuzzleScreen({ navigation, route }) {
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             {/* Header */}
-            <GameHeader level={playerLevel} onBack={() => handleRequestExit(null)} />
+            <GameHeader level={playerLevel} coins={playerCoins} onBack={() => handleRequestExit(null)} />
 
             {/* Scrollable Content */}
             <ScrollView
@@ -422,7 +483,7 @@ export default function WordPuzzleScreen({ navigation, route }) {
                     onTimeUp={handleTimeUp}
                     questionId={currentQuestion?.id || playerLevel}
                     resetKey={timerKey}
-                    isPaused={!isFocused || isCompleted || showTimeUpModal || showIncorrectModal}
+                    isPaused={!isFocused || isCompleted || showTimeUpModal || showIncorrectModal || showHintModal}
                 />
 
                 {/* Available Letter Tiles */}
@@ -472,6 +533,18 @@ export default function WordPuzzleScreen({ navigation, route }) {
                 level={playerLevel}
                 onTryAgain={handleTryAgain}
                 onLevelMap={handleIncorrectExit}
+            />
+
+            {/* Hint Choice Modal — Watch Ad or Spend 100 Coins */}
+            <HintModal
+                visible={showHintModal}
+                currentCoins={playerCoins}
+                onUseCoins={handleUseCoins}
+                onUseHintAfterAd={handleUseHintAfterAd}
+                onClose={() => {
+                    pendingHintRef.current = null;
+                    setShowHintModal(false);
+                }}
             />
         </View>
     );
