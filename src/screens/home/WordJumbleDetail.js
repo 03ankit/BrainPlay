@@ -14,10 +14,15 @@ import HowToPlayCard from '../../components/game/HowToPlayCard';
 import GameBottomActionBar from '../../components/game/GameBottomActionBar';
 import images from '../../constants/images';
 import colors from '../../constants/colour';
+import { WORD_PUZZLE_QUESTIONS } from '../../data/wordPuzzleQuestions';
 
 export default function WordJumbleDetail({ navigation, route }) {
     const gameTitle = route?.params?.game || route?.params?.title || 'Word Jumble';
-    const levelNumber = route?.params?.level || 12;
+    const levelNumber = Number(route?.params?.level) || 1;
+
+    const currentQuestion = WORD_PUZZLE_QUESTIONS.find(q => q.level_number === levelNumber) || WORD_PUZZLE_QUESTIONS[0];
+    const difficulty = currentQuestion?.difficulty || (levelNumber <= 5 ? 'EASY' : levelNumber <= 12 ? 'MEDIUM' : levelNumber <= 20 ? 'HARD' : 'BOSS');
+    const difficultyLevel = levelNumber <= 5 ? 1 : levelNumber <= 12 ? 2 : 3;
 
     const handleBack = () => {
         if (navigation && navigation.canGoBack()) {
@@ -77,8 +82,8 @@ export default function WordJumbleDetail({ navigation, route }) {
 
                 {/* 2. Difficulty Level Badge */}
                 <DifficultyBadgeCard
-                    level="Medium"
-                    currentLevel={2}
+                    level={difficulty}
+                    currentLevel={difficultyLevel}
                     totalLevels={3}
                 />
 

@@ -81,8 +81,8 @@ export default function MemoryChallengeDetail({ navigation, route }) {
                 {/* 2. Difficulty Level Badge */}
                 <DifficultyBadgeCard
                     level={levelConfig.difficulty}
-                    currentLevel={levelNumber <= 4 ? 1 : levelNumber <= 8 ? 2 : levelNumber <= 14 ? 3 : 4}
-                    totalLevels={4}
+                    currentLevel={levelNumber <= 6 ? 1 : levelNumber <= 13 ? 2 : 3}
+                    totalLevels={3}
                 />
 
                 {/* 3. How to Play Instructions */}

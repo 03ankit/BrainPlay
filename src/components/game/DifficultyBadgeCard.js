@@ -3,10 +3,30 @@ import { View, Text, StyleSheet } from 'react-native';
 import fonts from '../../constants/fonts';
 
 const DifficultyBadgeCard = ({
-    level = 'Medium',
-    currentLevel = 2,
+    level = 'Easy',
+    currentLevel,
     totalLevels = 3,
 }) => {
+    // Format level display nicely (e.g. 'EASY' -> 'Easy', 'VERY HARD' -> 'Very Hard')
+    const displayLevel = React.useMemo(() => {
+        if (!level || typeof level !== 'string') return level || 'Easy';
+        return level
+            .split(' ')
+            .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+            .join(' ');
+    }, [level]);
+
+    // Active bars (1 to 3) based on currentLevel or difficulty text
+    const activeBars = React.useMemo(() => {
+        if (typeof currentLevel === 'number') {
+            return Math.min(Math.max(currentLevel, 1), totalLevels);
+        }
+        const norm = (level || '').toUpperCase();
+        if (norm.includes('EASY') || norm.includes('NORMAL')) return 1;
+        if (norm.includes('MED')) return 2;
+        return 3;
+    }, [currentLevel, level, totalLevels]);
+
     return (
         <View style={styles.container}>
             {/* Left Icon Container */}
@@ -15,14 +35,14 @@ const DifficultyBadgeCard = ({
                     <Text style={styles.iconEmoji}>💡</Text>
                 </View>
                 <Text style={styles.difficultyText}>
-                    Difficulty: <Text style={styles.levelText}>{level}</Text>
+                    Difficulty: <Text style={styles.levelText}>{displayLevel}</Text>
                 </Text>
             </View>
 
-            {/* Right Segmented Level Bars */}
+            {/* Right Segmented Level Bars (3 boxes) */}
             <View style={styles.levelBarsContainer}>
                 {Array.from({ length: totalLevels }).map((_, index) => {
-                    const isActive = index < currentLevel;
+                    const isActive = index < activeBars;
                     return (
                         <View
                             key={index}
@@ -85,7 +105,7 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     barSegment: {
-        width: 28,
+        width: 32,
         height: 8,
         borderRadius: 4,
     },

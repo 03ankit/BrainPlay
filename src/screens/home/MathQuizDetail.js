@@ -81,8 +81,8 @@ export default function MathQuizDetail({ navigation, route }) {
                 {/* 2. Difficulty Level Badge */}
                 <DifficultyBadgeCard
                     level={levelConfig.difficulty}
-                    currentLevel={levelNumber <= 5 ? 1 : levelNumber <= 10 ? 2 : levelNumber <= 15 ? 3 : 4}
-                    totalLevels={4}
+                    currentLevel={levelNumber <= 5 ? 1 : levelNumber <= 12 ? 2 : 3}
+                    totalLevels={3}
                 />
 
                 {/* 3. How to Play Instructions */}
