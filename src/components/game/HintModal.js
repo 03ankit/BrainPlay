@@ -94,15 +94,15 @@ export default function HintModal({
                     {/* Options */}
                     <View style={styles.optionsContainer}>
 
-                        {/* Option 1 — Watch Ad */}
+                        {/* Option 1 — Free Hint */}
                         <View style={styles.optionCard}>
                             <View style={styles.optionLeft}>
                                 <View style={[styles.optionIconCircle, { backgroundColor: '#EDE9FE' }]}>
-                                    <Text style={styles.optionIcon}>📺</Text>
+                                    <Text style={styles.optionIcon}>🎁</Text>
                                 </View>
                                 <View style={styles.optionTextGroup}>
-                                    <Text style={styles.optionTitle}>Watch Ad</Text>
-                                    <Text style={styles.optionDesc}>Watch video to use hint</Text>
+                                    <Text style={styles.optionTitle}>Free Hint</Text>
+                                    <Text style={styles.optionDesc}>Claim free bonus hint</Text>
                                 </View>
                             </View>
 
@@ -115,7 +115,7 @@ export default function HintModal({
                                 {isWatching ? (
                                     <ActivityIndicator color="#fff" size="small" />
                                 ) : (
-                                    <Text style={styles.actionBtnText}>Watch</Text>
+                                    <Text style={styles.actionBtnText}>Claim</Text>
                                 )}
                             </TouchableOpacity>
                         </View>

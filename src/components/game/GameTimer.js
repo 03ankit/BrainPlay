@@ -35,6 +35,8 @@ export default function GameTimer({ initialSeconds = 15, onTimeUp, questionId, i
         }
     }, [timeLeft, isPaused, initialSeconds]);
 
+    const isTimeUp = timeLeft <= 0;
+
     // Interval handler for counting down every second
     useEffect(() => {
         if (timerRef.current) {
@@ -42,7 +44,7 @@ export default function GameTimer({ initialSeconds = 15, onTimeUp, questionId, i
             timerRef.current = null;
         }
 
-        if (isPaused || timeLeft <= 0) {
+        if (isPaused || isTimeUp) {
             return;
         }
 
@@ -56,7 +58,7 @@ export default function GameTimer({ initialSeconds = 15, onTimeUp, questionId, i
                 timerRef.current = null;
             }
         };
-    }, [isPaused, questionId, timeLeft <= 0]);
+    }, [isPaused, questionId, isTimeUp]);
 
     // Compute dynamic progress ratio (1.0 at full time -> 0.0 at end)
     const progress = Math.max(0, Math.min(1, initialSeconds > 0 ? timeLeft / initialSeconds : 0));

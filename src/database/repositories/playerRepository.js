@@ -66,6 +66,11 @@ export const savePlayerProfile = async (id = 'local_player', { name, email, phon
 
 export const syncPlayerCoins = async (id = 'local_player') => {
     try {
+        const currentProfile = await getPlayerProfile(id);
+        if (currentProfile && currentProfile.coins !== null && currentProfile.coins !== undefined && Number(currentProfile.coins) > 0) {
+            return Number(currentProfile.coins);
+        }
+
         const progRes = await executeSql(
             'SELECT stars FROM player_progress WHERE profile_id = ? AND is_completed = 1;',
             [id]

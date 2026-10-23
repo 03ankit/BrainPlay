@@ -39,6 +39,7 @@ export default function ColorMatchScreen({ navigation, route }) {
     const [currentQuestion, setCurrentQuestion] = useState(levelChallenge);
     const [isCompleted, setIsCompleted] = useState(false);
     const [timerKey, setTimerKey] = useState(0);
+    const [playerCoins, setPlayerCoins] = useState(0);
 
     // Modals
     const [showExitModal, setShowExitModal] = useState(false);
@@ -47,6 +48,27 @@ export default function ColorMatchScreen({ navigation, route }) {
 
     const questionStartTimeRef = useRef(Date.now());
     const isProcessingRef = useRef(false);
+
+    // Load live player coins
+    useEffect(() => {
+        let isMounted = true;
+        const loadCoins = async () => {
+            try {
+                const profile = await playerRepository.getPlayerProfile('local_player');
+                if (isMounted && profile) {
+                    setPlayerCoins(Number(profile.coins) || 0);
+                }
+            } catch (e) {
+                console.log('Could not load player coins in ColorMatchScreen:', e);
+            }
+        };
+        if (isFocused) {
+            loadCoins();
+        }
+        return () => {
+            isMounted = false;
+        };
+    }, [isFocused]);
 
     // Reset challenge when selectedLevel changes
     useEffect(() => {
@@ -134,6 +156,7 @@ export default function ColorMatchScreen({ navigation, route }) {
                     coins: earnedCoins,
                     xp: earnedStars * 50,
                 });
+                setPlayerCoins((prev) => prev + earnedCoins);
 
                 // Automatically record activity for the 7-day regular daily streak
                 await streakRepository.recordDailyActivity('local_player', '2', selectedLevel);
@@ -190,6 +213,7 @@ export default function ColorMatchScreen({ navigation, route }) {
             {/* Header matching Word Jumble (BrainPlay, Avatar back, Lv. X badge) */}
             <GameHeader
                 level={selectedLevel}
+                coins={playerCoins}
                 onBack={() => setShowExitModal(true)}
             />
 

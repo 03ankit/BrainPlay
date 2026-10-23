@@ -67,7 +67,7 @@ export default function WatchAdModal({
                     </Text>
 
                     <View style={styles.rewardRow}>
-                        <Text style={styles.rewardLabel}>📺  Watch an ad to earn</Text>
+                        <Text style={styles.rewardLabel}>🎁  Free player bonus</Text>
                         <Text style={styles.rewardAmount}>+{AD_REWARD_COINS} 🪙</Text>
                     </View>
 
@@ -82,12 +82,12 @@ export default function WatchAdModal({
                                 {isWatching ? (
                                     <>
                                         <ActivityIndicator color="#fff" size="small" />
-                                        <Text style={styles.watchButtonText}>Watching Ad…</Text>
+                                        <Text style={styles.watchButtonText}>Claiming Bonus…</Text>
                                     </>
                                 ) : (
                                     <>
-                                        <Text style={styles.watchIcon}>▶️</Text>
-                                        <Text style={styles.watchButtonText}>Watch Ad (+{AD_REWARD_COINS} 🪙)</Text>
+                                        <Text style={styles.watchIcon}>🎁</Text>
+                                        <Text style={styles.watchButtonText}>Claim Bonus (+{AD_REWARD_COINS} 🪙)</Text>
                                     </>
                                 )}
                             </TouchableOpacity>
